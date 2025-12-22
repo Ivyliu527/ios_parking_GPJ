@@ -1,0 +1,10 @@
+/* 
+  InfoPlist.strings
+  ParkingApp
+  
+  简体中文 Info.plist 本地化
+*/
+
+"NSLocationWhenInUseUsageDescription" = "我们需要您的位置以推荐附近的停车场。";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "我们需要您的位置以推荐附近的停车场。";
+

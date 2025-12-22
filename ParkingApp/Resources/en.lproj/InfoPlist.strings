@@ -1,0 +1,10 @@
+/* 
+  InfoPlist.strings
+  ParkingApp
+  
+  English Info.plist Localization
+*/
+
+"NSLocationWhenInUseUsageDescription" = "We need your location to recommend nearby parking lots.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "We need your location to recommend nearby parking lots.";
+

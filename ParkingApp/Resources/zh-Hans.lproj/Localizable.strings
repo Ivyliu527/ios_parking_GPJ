@@ -1,0 +1,82 @@
+/* 
+  Localizable.strings
+  ParkingApp
+  
+  简体中文本地化
+*/
+
+// Navigation & Titles
+"parking_map_title" = "停车场地图";
+"parking_list_title" = "停车场列表";
+"parking_detail_title" = "停车场详情";
+"history_title" = "历史记录";
+"profile_title" = "我的";
+
+// Location
+"location_permission_denied" = "定位权限未授权";
+"location_permission_message" = "为了推荐附近的停车场，请在设置中开启定位权限";
+"go_to_settings" = "去设置";
+"distance" = "距离";
+"meters" = "米";
+"kilometers" = "公里";
+
+// Parking Lot
+"parking_lot" = "停车场";
+"availability" = "空位信息";
+"available_total" = "可用/总数";
+"unknown" = "未知";
+"opening_hours" = "营业时间";
+"price_rules" = "收费规则";
+"not_provided" = "暂未提供";
+"facilities" = "设施";
+"ev_charging" = "EV 充电";
+"count" = "数量";
+"types" = "类型";
+"covered" = "有盖";
+"cctv" = "CCTV 监控";
+"contact_phone" = "联系方式";
+
+// Navigation
+"open_apple_maps" = "打开 Apple 地图导航";
+"built_in_route" = "内置路线预览";
+"calculating_route" = "计算路线中...";
+"route_not_found" = "未找到路线";
+"estimated_time" = "预计时间";
+"route_distance" = "距离";
+
+// Filters & Sort
+"search_placeholder" = "搜索停车场名称或地址...";
+"only_available" = "仅显示有空位";
+"ev_charging_filter" = "EV充电";
+"covered_filter" = "有盖";
+"cctv_filter" = "CCTV";
+"sort_by" = "排序";
+"sort_distance" = "距离优先";
+"sort_vacancies" = "空位优先";
+"sort_price" = "价格提示";
+
+// General
+"done" = "完成";
+"cancel" = "取消";
+"loading" = "加载中...";
+"no_results" = "未找到停车场";
+"retry" = "重试";
+
+// Settings
+"settings" = "设置";
+"language_settings" = "语言";
+"select_language" = "选择语言";
+"language_system" = "跟随系统";
+"language_change_note" = "语言更改将在重启应用后生效。";
+"edit_profile" = "编辑资料";
+"logout" = "退出登录";
+"profile_information" = "个人信息";
+"account_details" = "账户详情";
+"email" = "邮箱";
+"phone" = "电话";
+"license_plate" = "车牌号";
+"not_set" = "未设置";
+"personal_information" = "个人信息";
+"name" = "姓名";
+"save" = "保存";
+

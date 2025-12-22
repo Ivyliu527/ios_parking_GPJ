@@ -1,0 +1,82 @@
+/* 
+  Localizable.strings
+  ParkingApp
+  
+  English Localization
+*/
+
+// Navigation & Titles
+"parking_map_title" = "Parking Map";
+"parking_list_title" = "Parking List";
+"parking_detail_title" = "Parking Lot Details";
+"history_title" = "History";
+"profile_title" = "Profile";
+
+// Location
+"location_permission_denied" = "Location Permission Denied";
+"location_permission_message" = "To recommend nearby parking lots, please enable location permission in Settings";
+"go_to_settings" = "Go to Settings";
+"distance" = "Distance";
+"meters" = "m";
+"kilometers" = "km";
+
+// Parking Lot
+"parking_lot" = "Parking Lot";
+"availability" = "Availability";
+"available_total" = "Available/Total";
+"unknown" = "Unknown";
+"opening_hours" = "Opening Hours";
+"price_rules" = "Pricing";
+"not_provided" = "Not Provided";
+"facilities" = "Facilities";
+"ev_charging" = "EV Charging";
+"count" = "Count";
+"types" = "Types";
+"covered" = "Covered";
+"cctv" = "CCTV";
+"contact_phone" = "Contact";
+
+// Navigation
+"open_apple_maps" = "Open in Apple Maps";
+"built_in_route" = "Built-in Route Preview";
+"calculating_route" = "Calculating route...";
+"route_not_found" = "Route not found";
+"estimated_time" = "Estimated Time";
+"route_distance" = "Distance";
+
+// Filters & Sort
+"search_placeholder" = "Search parking lot name or address...";
+"only_available" = "Only Available";
+"ev_charging_filter" = "EV Charging";
+"covered_filter" = "Covered";
+"cctv_filter" = "CCTV";
+"sort_by" = "Sort By";
+"sort_distance" = "Distance First";
+"sort_vacancies" = "Vacancies First";
+"sort_price" = "Price Hint";
+
+// General
+"done" = "Done";
+"cancel" = "Cancel";
+"loading" = "Loading...";
+"no_results" = "No parking lots found";
+"retry" = "Retry";
+
+// Settings
+"settings" = "Settings";
+"language_settings" = "Language";
+"select_language" = "Select Language";
+"language_system" = "System Default";
+"language_change_note" = "Language changes will take effect after restarting the app.";
+"edit_profile" = "Edit Profile";
+"logout" = "Logout";
+"profile_information" = "Profile Information";
+"account_details" = "Account Details";
+"email" = "Email";
+"phone" = "Phone";
+"license_plate" = "License Plate";
+"not_set" = "Not set";
+"personal_information" = "Personal Information";
+"name" = "Name";
+"save" = "Save";
+
