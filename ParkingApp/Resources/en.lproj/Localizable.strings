@@ -79,4 +79,47 @@
 "personal_information" = "Personal Information";
 "name" = "Name";
 "save" = "Save";
+/* Route & Navigation */
+"open_in_apple_maps" = "Open in Apple Maps";
+"built_in_route" = "Built-in Route";
+"calculating_route" = "Calculating route...";
+"route_not_found" = "Route not found";
+"estimated_time" = "Estimated Time";
+"route_distance" = "Route Distance";
+"done" = "Done";
 
+/* Profile & Settings */
+"profile_information" = "Profile Information";
+"account_details" = "Account Details";
+"email" = "Email";
+"phone" = "Phone";
+"license_plate" = "License Plate";
+"not_set" = "Not set";
+"settings" = "Settings";
+"language_settings" = "Language";
+"edit_profile" = "Edit Profile";
+"logout" = "Logout";
+"personal_information" = "Personal Information";
+"name" = "Name";
+"save" = "Save";
+"cancel" = "Cancel";
+"select_language" = "Select Language";
+"language_change_note" = "Language changes may require app restart";
+
+/* Filters */
+"only_available" = "Available Only";
+"ev_charging_filter" = "EV Charging";
+"covered_filter" = "Covered";
+"sort_by" = "Sort by";
+"sort_distance" = "Distance";
+"sort_vacancies" = "Vacancies";
+"sort_price" = "Price";
+
+/* Location */
+"location_permission_denied" = "Location Access Required";
+"location_permission_message" = "Please enable location services in Settings to find nearby parking";
+"go_to_settings" = "Go to Settings";
+
+/* General */
+"search_placeholder" = "Search parking lots...";
+"no_results" = "No results found";

@@ -43,7 +43,7 @@ struct ParkingLot: Identifiable, Codable {
         if let available = availableSpaces, let total = totalSpaces {
             return "\(available)/\(total)"
         }
-        return NSLocalizedString("unknown")
+        return "Unknown" // 修正：直接返回字串，避免本地化問題
     }
 }
 
@@ -60,4 +60,3 @@ struct EVChargers: Codable {
     let count: Int?
     let types: [String]?
 }
-

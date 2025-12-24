@@ -83,20 +83,32 @@ struct ParkingLotsListView: View {
     }
 }
 
-/// 停车场列表项
+// ParkingLotsListView.swift 中的 ParkingLotRow 結構
 struct ParkingLotRow: View {
     let lot: ParkingLot
     let currentLocation: CLLocation?
     let onTap: () -> Void
+    
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
+    @State private var showingFavoriteAlert = false
     
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(lot.name)
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                        HStack(spacing: 8) {
+                            Text(lot.name)
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            // 收藏愛心圖標
+                            if authViewModel.isFavorite(parkingLotId: lot.id) {
+                                Image(systemName: "heart.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        }
                         
                         Text(lot.address)
                             .font(.subheadline)
@@ -154,6 +166,39 @@ struct ParkingLotRow: View {
             .cornerRadius(10)
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            // 右鍵/長按菜單
+            Button {
+                toggleFavorite()
+            } label: {
+                Label(
+                    authViewModel.isFavorite(parkingLotId: lot.id) ?
+                    "Remove from Favorites" : "Add to Favorites",
+                    systemImage: authViewModel.isFavorite(parkingLotId: lot.id) ?
+                    "heart.slash" : "heart"
+                )
+            }
+            
+            Button {
+                shareParkingLot()
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+        }
+        .onLongPressGesture {
+            showingFavoriteAlert = true
+        }
+        .alert("Favorite", isPresented: $showingFavoriteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button(authViewModel.isFavorite(parkingLotId: lot.id) ?
+                   "Remove from Favorites" : "Add to Favorites") {
+                toggleFavorite()
+            }
+        } message: {
+            Text(authViewModel.isFavorite(parkingLotId: lot.id) ?
+                 "Remove \(lot.name) from favorites?" :
+                 "Add \(lot.name) to favorites?")
+        }
     }
     
     private var availabilityColor: Color {
@@ -170,6 +215,30 @@ struct ParkingLotRow: View {
             return String(format: "%.0f%@", distance, NSLocalizedString("meters"))
         } else {
             return String(format: "%.1f%@", distance / 1000, NSLocalizedString("kilometers"))
+        }
+    }
+    
+    private func toggleFavorite() {
+        guard authViewModel.isAuthenticated else {
+            // 如果未登入，可以提示登入
+            showingFavoriteAlert = true
+            return
+        }
+        
+        authViewModel.toggleFavorite(parkingLotId: lot.id)
+    }
+    
+    private func shareParkingLot() {
+        let shareText = "Check out \(lot.name) at \(lot.address)"
+        let activityVC = UIActivityViewController(
+            activityItems: [shareText],
+            applicationActivities: nil
+        )
+        
+        // 在 iOS 中顯示分享面板
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.present(activityVC, animated: true)
         }
     }
 }

@@ -21,6 +21,9 @@ struct ParkingMapView: View {
     @State private var selectedSpot: ParkingSpot?
     @State private var showingReservationSheet = false
     
+    // 添加 parkingService 引用
+    private let parkingService = ParkingService.shared
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -64,6 +67,7 @@ struct ParkingMapView: View {
                     
                     Spacer()
                     
+                    // 修正：使用 parkingService 替代未定義的變數
                     if let activeReservation = reservationViewModel.activeReservation,
                        let spot = parkingService.getSpotById(activeReservation.parkingSpotId) {
                         ActiveReservationCard(reservation: activeReservation, spot: spot)
@@ -78,10 +82,6 @@ struct ParkingMapView: View {
                     .environmentObject(authViewModel)
             }
         }
-    }
-    
-    private var parkingService: ParkingService {
-        ParkingService.shared
     }
 }
 
@@ -174,10 +174,10 @@ struct LocationPermissionAlert: View {
                 .font(.system(size: 40))
                 .foregroundColor(.orange)
             
-            Text(NSLocalizedString("location_permission_denied"))
+            Text("Location Access Required")
                 .font(.headline)
             
-            Text(NSLocalizedString("location_permission_message"))
+            Text("Please enable location services in Settings to find nearby parking")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -188,7 +188,7 @@ struct LocationPermissionAlert: View {
                     UIApplication.shared.open(settingsURL)
                 }
             }) {
-                Text(NSLocalizedString("go_to_settings"))
+                Text("Go to Settings")
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)

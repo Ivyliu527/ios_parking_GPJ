@@ -75,10 +75,32 @@ class AuthenticationViewModel: ObservableObject {
         userDefaults.removeObject(forKey: userKey)
     }
     
+    // MARK: - 收藏功能方法
+    
+    /// 切換停車場收藏狀態
+    func toggleFavorite(parkingLotId: String) {
+        guard var user = currentUser else { return }
+        
+        user.toggleFavorite(parkingLotId: parkingLotId)
+        currentUser = user
+        saveUser(user)
+    }
+    
+    /// 檢查是否已收藏
+    func isFavorite(parkingLotId: String) -> Bool {
+        return currentUser?.isFavorite(parkingLotId: parkingLotId) ?? false
+    }
+    
+    /// 獲取所有收藏的停車場ID
+    func getFavorites() -> [String] {
+        return currentUser?.favoriteParkingLotIds ?? []
+    }
+    
+    // MARK: - Private Methods
+    
     private func saveUser(_ user: User) {
         if let userData = try? JSONEncoder().encode(user) {
             userDefaults.set(userData, forKey: userKey)
         }
     }
 }
-
