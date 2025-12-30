@@ -1,303 +1,292 @@
 //
-//  NetworkService.swift
+//  FirebaseService.swift
 //  ParkingApp
 //
 //  Created on 2025
 //
 
 import Foundation
+import FirebaseAuth
+import FirebaseFirestore
 
-/// 网络服务 - 处理与后端 API 的通信
-class NetworkService {
-    static let shared = NetworkService()
+/// Firebase 统一服务层 —— 处理 Auth 与 Firestore 数据读写
+final class FirebaseService {
+    static let shared = FirebaseService()
     
-    // MARK: - API 配置
-    // 请将以下 URL 替换为您的实际后端 API 地址
-    // 例如：https://api.yourdomain.com/api 或 http://localhost:3000/api
-    // 如果使用环境变量，可以从 Info.plist 或配置文件中读取
-    private let baseURL: String = {
-        // 优先从 Info.plist 读取配置
-        if let apiURL = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String,
-           !apiURL.isEmpty {
-            return apiURL
-        }
-        // 默认值（开发环境）
-        return "https://your-api-server.com/api"
-    }()
+    let auth: Auth
+    let db: Firestore
     
-    private let networkMonitor = NetworkMonitor.shared
-    
-    private init() {}
-    
-    /// 检查网络连接
-    private func checkNetworkConnection() throws {
-        if !networkMonitor.isConnected {
-            throw NetworkError.networkUnavailable
-        }
+    private init() {
+        self.auth = Auth.auth()
+        self.db = Firestore.firestore()
+        
+        // 可选：配置离线缓存策略
+        let settings = db.settings
+        // settings.isPersistenceEnabled = true  // Firestore iOS 默认开启持久化
+        db.settings = settings
     }
     
-    // MARK: - 用户认证 API
+    // MARK: - Auth
     
-    /// 用户登录
-    /// API 端点: POST /auth/login
-    /// 请求体: { "email": String, "password": String }
-    /// 响应: UserResponse { id, email, name, phoneNumber, licensePlate?, token? }
-    func login(email: String, password: String) async throws -> UserResponse {
-        try checkNetworkConnection()
-        
-        guard let url = URL(string: "\(baseURL)/auth/login") else {
-            throw NetworkError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 添加认证 token（如果存在）
-        if let token = UserDefaults.standard.string(forKey: "authToken") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let body: [String: Any] = [
-            "email": email,
-            "password": password
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 401 {
-                throw NetworkError.unauthorized
-            }
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(UserResponse.self, from: data)
+    struct UserResponse: Codable {
+        let id: String
+        let email: String
+        let name: String
+        let phoneNumber: String
+        let licensePlate: String?
+        let token: String?  // 可用于自定义 token，Firebase 邮密登录不返回 JWT，这里保留字段兼容旧模型
     }
     
-    /// 用户注册
-    /// API 端点: POST /auth/register
-    /// 请求体: { "email": String, "password": String, "name": String, "phoneNumber": String }
-    /// 响应: UserResponse { id, email, name, phoneNumber, licensePlate?, token? }
+    /// 注册（创建账号 + 初始化用户文档）
     func register(email: String, password: String, name: String, phoneNumber: String) async throws -> UserResponse {
-        try checkNetworkConnection()
+        let result = try await auth.createUser(withEmail: email, password: password)
+        let uid = result.user.uid
         
-        guard let url = URL(string: "\(baseURL)/auth/register") else {
-            throw NetworkError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body: [String: Any] = [
+        // 初始化 Firestore 用户文档
+        try await db.collection("users").document(uid).setData([
             "email": email,
-            "password": password,
             "name": name,
-            "phoneNumber": phoneNumber
-        ]
+            "phoneNumber": phoneNumber,
+            "favoriteIds": []
+        ], merge: true)
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 409 {
-                throw NetworkError.userExists
-            }
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(UserResponse.self, from: data)
+        return UserResponse(
+            id: uid,
+            email: email,
+            name: name,
+            phoneNumber: phoneNumber,
+            licensePlate: nil,
+            token: nil
+        )
     }
     
-    /// 同步用户收藏到服务器
-    /// API 端点: PUT /users/{userId}/favorites
-    /// 请求体: { "favoriteIds": [String] }
+    /// 登录
+    func login(email: String, password: String) async throws -> UserResponse {
+        let result = try await auth.signIn(withEmail: email, password: password)
+        let user = result.user
+        
+        // 从 Firestore 读取用户信息（若不存在则用 Auth 的基本信息）
+        let docRef = db.collection("users").document(user.uid)
+        let snapshot = try await docRef.getDocument()
+        
+        if snapshot.exists, let data = snapshot.data() {
+            return UserResponse(
+                id: user.uid,
+                email: data["email"] as? String ?? (user.email ?? email),
+                name: data["name"] as? String ?? "",
+                phoneNumber: data["phoneNumber"] as? String ?? "",
+                licensePlate: data["licensePlate"] as? String,
+                token: nil
+            )
+        } else {
+            // 首次登录但未初始化用户文档时可补写一份最小文档
+            try await docRef.setData([
+                "email": user.email ?? email,
+                "name": "",
+                "phoneNumber": "",
+                "favoriteIds": []
+            ], merge: true)
+            return UserResponse(
+                id: user.uid,
+                email: user.email ?? email,
+                name: "",
+                phoneNumber: "",
+                licensePlate: nil,
+                token: nil
+            )
+        }
+    }
+    
+    /// 登出
+    func logout() throws {
+        try auth.signOut()
+    }
+    
+    /// 当前用户 UID（未登录为 nil）
+    var currentUserId: String? {
+        auth.currentUser?.uid
+    }
+    
+    // MARK: - Favorites 收藏
+    
+    /// 覆盖式写入收藏列表
     func syncFavorites(userId: String, favoriteIds: [String]) async throws {
-        try checkNetworkConnection()
-        
-        guard let url = URL(string: "\(baseURL)/users/\(userId)/favorites") else {
-            throw NetworkError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 添加认证 token
-        if let token = UserDefaults.standard.string(forKey: "authToken") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let body: [String: Any] = [
-            "favoriteIds": favoriteIds
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (_, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
+        let ref = db.collection("users").document(userId)
+        try await ref.setData([
+            "favoriteIds": favoriteIds,
+            "updatedAt": FieldValue.serverTimestamp()
+        ], merge: true)
     }
     
-    /// 同步预定记录到服务器
-    /// API 端点: PUT /users/{userId}/reservations
-    /// 请求体: [Reservation] (JSON 数组)
-    func syncReservations(userId: String, reservations: [Reservation]) async throws {
-        try checkNetworkConnection()
-        
-        guard let url = URL(string: "\(baseURL)/users/\(userId)/reservations") else {
-            throw NetworkError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 添加认证 token
-        if let token = UserDefaults.standard.string(forKey: "authToken") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        request.httpBody = try encoder.encode(reservations)
-        
-        let (_, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-    }
-    
-    /// 从服务器获取用户的预定记录
-    /// API 端点: GET /users/{userId}/reservations
-    func fetchReservations(userId: String) async throws -> [Reservation] {
-        try checkNetworkConnection()
-        
-        guard let url = URL(string: "\(baseURL)/users/\(userId)/reservations") else {
-            throw NetworkError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 添加认证 token
-        if let token = UserDefaults.standard.string(forKey: "authToken") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([Reservation].self, from: data)
-    }
-    
-    /// 从服务器获取用户的收藏列表
-    /// API 端点: GET /users/{userId}/favorites
+    /// 读取收藏列表
     func fetchFavorites(userId: String) async throws -> [String] {
-        try checkNetworkConnection()
+        let ref = db.collection("users").document(userId)
+        let snapshot = try await ref.getDocument()
+        guard snapshot.exists else { return [] }
+        let data = snapshot.data() ?? [:]
+        return data["favoriteIds"] as? [String] ?? []
+    }
+    
+    /// 增量添加收藏
+    func addFavorite(userId: String, lotId: String) async throws {
+        let ref = db.collection("users").document(userId)
+        try await ref.updateData([
+            "favoriteIds": FieldValue.arrayUnion([lotId]),
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+    
+    /// 移除收藏
+    func removeFavorite(userId: String, lotId: String) async throws {
+        let ref = db.collection("users").document(userId)
+        try await ref.updateData([
+            "favoriteIds": FieldValue.arrayRemove([lotId]),
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+    
+    // MARK: - Reservations 预定
+    
+    /// 覆盖式同步预定记录数组
+    func syncReservations(userId: String, reservations: [Reservation]) async throws {
+        // 存在两种常见建模方式：
+        // A) users/{uid}/reservations 子集合（推荐，便于查询与权限控制）
+        // B) users/{uid} 文档内数组字段
+        // 这里采用 A 方案：子集合
+        let base = db.collection("users").document(userId).collection("reservations")
         
-        guard let url = URL(string: "\(baseURL)/users/\(userId)/favorites") else {
-            throw NetworkError.invalidURL
+        // 批处理：先读取现有文档 id，删除不在新列表中的，再写入/覆盖新列表
+        let existing = try await base.getDocuments().documents
+        let existingIds = Set(existing.map { $0.documentID })
+        let incomingIds = Set(reservations.map { $0.id })
+        
+        let batch = db.batch()
+        
+        // 删除多余的
+        for doc in existing where !incomingIds.contains(doc.documentID) {
+            batch.deleteDocument(doc.reference)
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 添加认证 token
-        if let token = UserDefaults.standard.string(forKey: "authToken") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        // 写入/覆盖
+        for item in reservations {
+            let ref = base.document(item.id)
+            var data: [String: Any] = [
+                "userId": item.userId,
+                "parkingSpotId": item.parkingSpotId,
+                "startTime": Timestamp(date: item.startTime),
+                "status": item.status.rawValue,
+                "totalCost": item.totalCost,
+                "paymentStatus": item.paymentStatus.rawValue
+            ]
+            if let endTime = item.endTime {
+                data["endTime"] = Timestamp(date: endTime)
+            }
+            batch.setData(data, forDocument: ref, merge: true)
         }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
+        try await batch.commit()
+    }
+    
+    /// 获取预定记录（按时间倒序）
+    func fetchReservations(userId: String) async throws -> [Reservation] {
+        let base = db.collection("users").document(userId).collection("reservations")
+        let qs = try await base.order(by: "startTime", descending: true).getDocuments()
+        return qs.documents.compactMap { doc in
+            guard let data = doc.data() as? [String: Any],
+                  let parkingSpotId = data["parkingSpotId"] as? String,
+                  let startTimeTimestamp = data["startTime"] as? Timestamp,
+                  let statusString = data["status"] as? String,
+                  let status = Reservation.ReservationStatus(rawValue: statusString),
+                  let totalCost = data["totalCost"] as? Double,
+                  let paymentStatusString = data["paymentStatus"] as? String,
+                  let paymentStatus = Reservation.PaymentStatus(rawValue: paymentStatusString) else {
+                return nil
+            }
+            
+            var endTime: Date?
+            if let endTimeTimestamp = data["endTime"] as? Timestamp {
+                endTime = endTimeTimestamp.dateValue()
+            }
+            
+            return Reservation(
+                id: doc.documentID,
+                userId: data["userId"] as? String ?? userId,
+                parkingSpotId: parkingSpotId,
+                startTime: startTimeTimestamp.dateValue(),
+                endTime: endTime,
+                status: status,
+                totalCost: totalCost,
+                paymentStatus: paymentStatus
+            )
         }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        let responseDict = try decoder.decode([String: [String]].self, from: data)
-        return responseDict["favoriteIds"] ?? []
     }
 }
 
-// MARK: - 响应模型
+// MARK: - Firestore 模型
 
-struct UserResponse: Codable {
-    let id: String
-    let email: String
-    let name: String
-    let phoneNumber: String
-    let licensePlate: String?
-    let token: String?
+/// Firestore 中 users/{uid} 文档结构
+struct UserDoc: Codable {
+    var id: String?
+    var email: String
+    var name: String
+    var phoneNumber: String
+    var licensePlate: String?
+    var favoriteIds: [String]
+    var createdAt: Date?
+    var updatedAt: Date?
+    
+    init(id: String, email: String, name: String, phoneNumber: String, licensePlate: String?, favoriteIds: [String], createdAt: Date?, updatedAt: Date?) {
+        self.id = id
+        self.email = email
+        self.name = name
+        self.phoneNumber = phoneNumber
+        self.licensePlate = licensePlate
+        self.favoriteIds = favoriteIds
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
-// MARK: - 错误类型
+/// 你的 Reservation 模型示例（若你已有，确保字段名/类型与 Firestore 对齐）
+//struct Reservation: Codable, Identifiable {
+//    // 使用字符串 ID；创建时可以用 UUID().uuidString
+//    var id: String
+//    var userId: String
+//    var lotId: String
+//    var lotName: String
+//    var startTime: Date
+//    var endTime: Date
+//    var price: Double
+//    var vehiclePlate: String?
+//    
+//    init(id: String, userId: String, lotId: String, lotName: String, startTime: Date, endTime: Date, price: Double, vehiclePlate: String?) {
+//        self.id = id
+//        self.userId = userId
+//        self.lotId = lotId
+//        self.lotName = lotName
+//        self.startTime = startTime
+//        self.endTime = endTime
+//        self.price = price
+//        self.vehiclePlate = vehiclePlate
+//    }
+//}
 
-enum NetworkError: LocalizedError {
-    case invalidURL
-    case invalidResponse
-    case unauthorized
-    case userExists
-    case serverError(Int)
+// MARK: - 错误定义（保持与原有调用方风格接近）
+
+enum FBError: LocalizedError {
+    case notLoggedIn
+    case userNotFound
+    case permissionDenied
     case networkUnavailable
+    case underlying(Error)
     
     var errorDescription: String? {
         switch self {
-        case .invalidURL:
-            return "无效的 URL"
-        case .invalidResponse:
-            return "无效的响应"
-        case .unauthorized:
-            return "用户名或密码错误"
-        case .userExists:
-            return "用户已存在"
-        case .serverError(let code):
-            return "服务器错误: \(code)"
-        case .networkUnavailable:
-            return "网络不可用"
+        case .notLoggedIn: return "用户未登录"
+        case .userNotFound: return "未找到用户数据"
+        case .permissionDenied: return "没有权限执行该操作"
+        case .networkUnavailable: return "网络不可用"
+        case .underlying(let e): return e.localizedDescription
         }
     }
 }
-

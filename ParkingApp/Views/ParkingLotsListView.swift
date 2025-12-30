@@ -508,9 +508,16 @@ struct ParkingLotRow: View {
     }
     
     private func toggleFavorite() {
+        // 保护：只有在用户已登录时才允许切换收藏
         guard authViewModel.isAuthenticated else {
             // 如果未登入，可以提示登入
             showingFavoriteAlert = true
+            return
+        }
+        
+        // 再次检查，确保用户对象存在
+        guard authViewModel.currentUser != nil else {
+            print("⚠️ 用户对象不存在，无法切换收藏")
             return
         }
         

@@ -12,6 +12,9 @@
 		CA4458D82F03704F00EC169A /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CA4458D72F03704F00EC169A /* FirebaseAnalytics */; };
 		CA4458DA2F03704F00EC169A /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = CA4458D92F03704F00EC169A /* FirebaseAnalyticsCore */; };
 		CA4458DC2F03704F00EC169A /* FirebaseAnalyticsIdentitySupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA4458DB2F03704F00EC169A /* FirebaseAnalyticsIdentitySupport */; };
+		CA4459522F0373E900EC169A /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CA4459512F0373E900EC169A /* FirebaseAuth */; };
+		CA4459542F0373F300EC169A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CA4459532F0373F300EC169A /* FirebaseFirestore */; };
+		CA4459562F03740600EC169A /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = CA4459552F03740600EC169A /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,20 +48,31 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA4458D62F03704F00EC169A /* FirebaseAILogic in Frameworks */,
+				CA4459522F0373E900EC169A /* FirebaseAuth in Frameworks */,
 				CA4458DC2F03704F00EC169A /* FirebaseAnalyticsIdentitySupport in Frameworks */,
 				CA4458D42F03704F00EC169A /* FirebaseAI in Frameworks */,
 				CA4458D82F03704F00EC169A /* FirebaseAnalytics in Frameworks */,
+				CA4459562F03740600EC169A /* FirebaseStorage in Frameworks */,
 				CA4458DA2F03704F00EC169A /* FirebaseAnalyticsCore in Frameworks */,
+				CA4459542F0373F300EC169A /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CA4459502F0373E900EC169A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		CAF95D1D2EF7AEC70069DB30 = {
 			isa = PBXGroup;
 			children = (
 				CAF95D282EF7AEC70069DB30 /* ParkingApp */,
+				CA4459502F0373E900EC169A /* Frameworks */,
 				CAF95D272EF7AEC70069DB30 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -96,6 +110,9 @@
 				CA4458D72F03704F00EC169A /* FirebaseAnalytics */,
 				CA4458D92F03704F00EC169A /* FirebaseAnalyticsCore */,
 				CA4458DB2F03704F00EC169A /* FirebaseAnalyticsIdentitySupport */,
+				CA4459512F0373E900EC169A /* FirebaseAuth */,
+				CA4459532F0373F300EC169A /* FirebaseFirestore */,
+				CA4459552F03740600EC169A /* FirebaseStorage */,
 			);
 			productName = ParkingApp;
 			productReference = CAF95D262EF7AEC70069DB30 /* ParkingApp.app */;
@@ -404,6 +421,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CA4458D22F03704F00EC169A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAnalyticsIdentitySupport;
+		};
+		CA4459512F0373E900EC169A /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA4458D22F03704F00EC169A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		CA4459532F0373F300EC169A /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA4458D22F03704F00EC169A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		CA4459552F03740600EC169A /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA4458D22F03704F00EC169A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

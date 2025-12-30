@@ -147,19 +147,24 @@ struct EditProfileView: View {
     }
     
     private func saveProfile() {
-        guard var user = authViewModel.currentUser else { return }
-        user.name = name
-        user.phoneNumber = phoneNumber
-        user.licensePlate = licensePlate.isEmpty ? nil : licensePlate
-        authViewModel.currentUser = user
-        
-        // Save to UserDefaults
-        if let userData = try? JSONEncoder().encode(user) {
-            UserDefaults.standard.set(userData, forKey: "currentUser")
+        Task {
+            do {
+                let licensePlate = licensePlate.isEmpty ? nil : licensePlate
+                try await authViewModel.updateUserProfile(
+                    name: name,
+                    phoneNumber: phoneNumber,
+                    licensePlate: licensePlate
+                )
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    print("保存用户资料失败: \(error)")
+                    // 可以在这里显示错误提示
+                }
+            }
         }
-        
-        // 如果有网络，同步到服务器（需要服务器支持更新用户信息的 API）
-        // 这里暂时只保存到本地，等服务器 API 准备好后再添加
     }
 }
 

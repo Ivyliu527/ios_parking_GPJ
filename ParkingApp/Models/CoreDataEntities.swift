@@ -17,8 +17,10 @@ extension ParkingLotEntity {
         // "Initializer for conditional binding must have Optional type, not 'Int32'"
         let facilities: Facilities?
         if evChargerCount > 0 {
+            // evChargerTypes 是 Transformable 类型，在 Core Data 中是 NSObject?，需要转换为 [String]?
+            let chargerTypes = evChargerTypes as? [String]
             facilities = Facilities(
-                evChargers: EVChargers(count: Int(evChargerCount), types: evChargerTypes),
+                evChargers: EVChargers(count: Int(evChargerCount), types: chargerTypes),
                 covered: covered,
                 cctv: cctv,
                 contactPhone: contactPhone
@@ -76,7 +78,13 @@ extension ParkingLotEntity {
         entity.covered = lot.facilities?.covered ?? false
         entity.cctv = lot.facilities?.cctv ?? false
         entity.evChargerCount = Int32(lot.facilities?.evChargers?.count ?? 0)
-        entity.evChargerTypes = lot.facilities?.evChargers?.types
+        // evChargerTypes 是 Transformable 类型（NSObject?），需要将 [String]? 桥接为 Objective-C 对象
+        // [String] 可以自动桥接到 NSArray，NSArray 是 NSObject 的子类
+        if let types = lot.facilities?.evChargers?.types {
+            entity.evChargerTypes = types as NSArray
+        } else {
+            entity.evChargerTypes = nil
+        }
         
         // lastUpdated：来源于远端数据的更新时间；可能为 nil
         entity.lastUpdated = lot.lastUpdated
@@ -128,38 +136,57 @@ extension ReservationEntity {
 }
 
 extension FavoriteEntity {
-    /// 切换收藏状态；存在则删除，不存在则新增。返回当前是否为“已收藏”
+    /// 切换收藏状态；存在则删除，不存在则新增。返回当前是否为"已收藏"
     @discardableResult
     static func toggleFavorite(userId: String, parkingLotId: String, in context: NSManagedObjectContext) -> Bool {
-        let request: NSFetchRequest<FavoriteEntity> = FavoriteEntity.fetchRequest()
+        // 使用类型安全的 fetchRequest() 方法
+        let request = FavoriteEntity.fetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "userId == %@ AND parkingLotId == %@", userId, parkingLotId)
         
-        if let existing = try? context.fetch(request).first {
-            context.delete(existing)
-            return false // 已取消收藏
-        } else {
-            let entity = FavoriteEntity(context: context)
-            entity.userId = userId
-            entity.parkingLotId = parkingLotId
-            entity.createdAt = Date()
-            return true // 已添加收藏
+        do {
+            if let existing = try context.fetch(request).first {
+                context.delete(existing)
+                return false // 已取消收藏
+            } else {
+                let entity = FavoriteEntity(context: context)
+                entity.userId = userId
+                entity.parkingLotId = parkingLotId
+                entity.createdAt = Date()
+                return true // 已添加收藏
+            }
+        } catch {
+            print("⚠️ 切换收藏状态失败: \(error)")
+            // 如果实体不存在，返回 false 避免崩溃
+            return false
         }
     }
     
     /// 检查是否已收藏
     static func isFavorite(userId: String, parkingLotId: String, in context: NSManagedObjectContext) -> Bool {
-        let request: NSFetchRequest<FavoriteEntity> = FavoriteEntity.fetchRequest()
+        let request = FavoriteEntity.fetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "userId == %@ AND parkingLotId == %@", userId, parkingLotId)
-        return (try? context.fetch(request).first) != nil
+        
+        do {
+            return try context.fetch(request).first != nil
+        } catch {
+            print("⚠️ 检查收藏状态失败: \(error)")
+            return false
+        }
     }
     
     /// 获取用户的所有收藏（返回 parkingLotId 列表）
     static func getFavorites(userId: String, in context: NSManagedObjectContext) -> [String] {
-        let request: NSFetchRequest<FavoriteEntity> = FavoriteEntity.fetchRequest()
+        let request = FavoriteEntity.fetchRequest()
         request.predicate = NSPredicate(format: "userId == %@", userId)
-        let favorites = (try? context.fetch(request)) ?? []
-        return favorites.compactMap { $0.parkingLotId }
+        
+        do {
+            let favorites = try context.fetch(request)
+            return favorites.compactMap { $0.parkingLotId }
+        } catch {
+            print("⚠️ 获取收藏列表失败: \(error)")
+            return []
+        }
     }
 }

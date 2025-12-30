@@ -83,6 +83,12 @@ class CoreDataService {
     
     /// 切换收藏状态
     func toggleFavorite(userId: String, parkingLotId: String) -> Bool {
+        // 保护：检查 Core Data 模型是否已加载
+        guard isCoreDataReady() else {
+            print("⚠️ Core Data 未就绪，无法切换收藏状态")
+            return false
+        }
+        
         let context = persistenceController.container.viewContext
         let isFavorite = FavoriteEntity.toggleFavorite(userId: userId, parkingLotId: parkingLotId, in: context)
         
@@ -97,14 +103,39 @@ class CoreDataService {
     
     /// 检查是否已收藏
     func isFavorite(userId: String, parkingLotId: String) -> Bool {
+        // 保护：检查 Core Data 模型是否已加载
+        guard isCoreDataReady() else {
+            return false
+        }
+        
         let context = persistenceController.container.viewContext
         return FavoriteEntity.isFavorite(userId: userId, parkingLotId: parkingLotId, in: context)
     }
     
     /// 获取用户的所有收藏
     func getFavorites(userId: String) -> [String] {
+        // 保护：检查 Core Data 模型是否已加载
+        guard isCoreDataReady() else {
+            return []
+        }
+        
         let context = persistenceController.container.viewContext
         return FavoriteEntity.getFavorites(userId: userId, in: context)
+    }
+    
+    /// 检查 Core Data 是否就绪（模型是否已加载）
+    private func isCoreDataReady() -> Bool {
+        let context = persistenceController.container.viewContext
+        let model = context.persistentStoreCoordinator?.managedObjectModel
+        
+        // 检查 FavoriteEntity 是否存在于模型中
+        guard let entityDescription = model?.entitiesByName["FavoriteEntity"] else {
+            print("⚠️ 错误：Core Data 模型中未找到 FavoriteEntity 实体")
+            print("⚠️ 请确保 ParkingDataModel.xcdatamodeld 文件存在且包含 FavoriteEntity 实体")
+            return false
+        }
+        
+        return true
     }
     
     // MARK: - 预定记录

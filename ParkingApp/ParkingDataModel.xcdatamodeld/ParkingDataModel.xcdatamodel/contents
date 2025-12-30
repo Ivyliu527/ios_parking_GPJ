@@ -1,5 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="24G90" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
-    <entity name="Entity" representedClassName="Entity" syncable="YES" codeGenerationType="class"/>
-    <entity name="TempEntity" representedClassName="TempEntity" syncable="YES" codeGenerationType="class"/>
+    <entity name="FavoriteEntity" representedClassName=".FavoriteEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="parkingLotId" attributeType="String"/>
+        <attribute name="userId" attributeType="String"/>
+    </entity>
+    <entity name="ParkingLotEntity" representedClassName=".ParkingLotEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="address" optional="YES" attributeType="String"/>
+        <attribute name="availableSpaces" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="cachedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="cctv" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="contactPhone" optional="YES" attributeType="String"/>
+        <attribute name="covered" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="evChargerCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="evChargerTypes" optional="YES" attributeType="Transformable"/>
+        <attribute name="id" optional="YES" attributeType="String"/>
+        <attribute name="lastUpdated" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="openingHours" optional="YES" attributeType="String"/>
+        <attribute name="priceRules" optional="YES" attributeType="String"/>
+        <attribute name="totalSpaces" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="ReservationEntity" representedClassName=".ReservationEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="parkingSpotId" attributeType="String"/>
+        <attribute name="paymentStatus" attributeType="String"/>
+        <attribute name="startTime" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="status" attributeType="String"/>
+        <attribute name="syncedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="totalCost" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="userId" attributeType="String"/>
+    </entity>
 </model>
