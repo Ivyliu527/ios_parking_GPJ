@@ -11,7 +11,6 @@ import CoreLocation
 
 struct ParkingMapView: View {
     @EnvironmentObject var parkingViewModel: ParkingViewModel
-    @EnvironmentObject var reservationViewModel: ReservationViewModel
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @StateObject private var locationManager = LocationManager()
     @State private var region = MKCoordinateRegion(
@@ -19,10 +18,6 @@ struct ParkingMapView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
     )
     @State private var selectedSpot: ParkingSpot?
-    @State private var showingReservationSheet = false
-    
-    // 添加 parkingService 引用
-    private let parkingService = ParkingService.shared
     
     var body: some View {
         NavigationView {
@@ -66,105 +61,13 @@ struct ParkingMapView: View {
                     }
                     
                     Spacer()
-                    
-                    // 修正：使用 parkingService 替代未定義的變數
-                    if let activeReservation = reservationViewModel.activeReservation,
-                       let spot = parkingService.getSpotById(activeReservation.parkingSpotId) {
-                        ActiveReservationCard(reservation: activeReservation, spot: spot)
-                            .padding()
-                    }
                 }
             }
             .navigationTitle("Parking Map")
-            .sheet(item: $selectedSpot) { spot in
-                ReservationView(spot: spot)
-                    .environmentObject(reservationViewModel)
-                    .environmentObject(authViewModel)
-            }
         }
     }
 }
 
-struct ActiveReservationCard: View {
-    let reservation: Reservation
-    let spot: ParkingSpot
-    @EnvironmentObject var reservationViewModel: ReservationViewModel
-    @State private var timeRemaining: TimeInterval = 0
-    @State private var timer: Timer?
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Active Reservation")
-                        .font(.headline)
-                    Text("Spot: \(spot.number)")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-                Spacer()
-                Button(action: {
-                    reservationViewModel.completeReservation(reservation)
-                }) {
-                    Text("End")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.red)
-                        .cornerRadius(8)
-                }
-            }
-            
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Time Remaining")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Text(formatTime(timeRemaining))
-                        .font(.title3)
-                        .fontWeight(.bold)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing) {
-                    Text("Total Cost")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Text("$\(String(format: "%.2f", reservation.totalCost))")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 5)
-        .onAppear {
-            updateTimeRemaining()
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                updateTimeRemaining()
-            }
-        }
-        .onDisappear {
-            timer?.invalidate()
-        }
-    }
-    
-    private func updateTimeRemaining() {
-        if let remaining = reservationViewModel.calculateRemainingTime(reservation) {
-            timeRemaining = remaining
-        }
-    }
-    
-    private func formatTime(_ time: TimeInterval) -> String {
-        let hours = Int(time) / 3600
-        let minutes = Int(time) / 60 % 60
-        let seconds = Int(time) % 60
-        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
-    }
-}
 
 /// 定位权限被拒绝时的提示视图
 struct LocationPermissionAlert: View {

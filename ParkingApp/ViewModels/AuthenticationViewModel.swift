@@ -204,12 +204,6 @@ class AuthenticationViewModel: ObservableObject {
                     "favoriteIds": []
                 ], merge: true)
                 
-                // 通知 ReservationViewModel（如果有监听）
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("UserDidLogin"),
-                    object: nil,
-                    userInfo: ["userId": userId]
-                )
                 
                 // 注册成功，状态监听会触发 loadUserData
                 await MainActor.run { self.isLoading = false }

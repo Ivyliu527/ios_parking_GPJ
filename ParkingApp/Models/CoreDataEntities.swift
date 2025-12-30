@@ -95,46 +95,6 @@ extension ParkingLotEntity {
     }
 }
 
-extension ReservationEntity {
-    /// 转换为领域模型 Reservation
-    func toReservation() -> Reservation {
-        return Reservation(
-            id: id ?? UUID().uuidString,
-            userId: userId ?? "",
-            parkingSpotId: parkingSpotId ?? "",
-            startTime: startTime ?? Date(),
-            endTime: endTime,
-            status: Reservation.ReservationStatus(rawValue: status ?? "active") ?? .active,
-            totalCost: totalCost,
-            paymentStatus: Reservation.PaymentStatus(rawValue: paymentStatus ?? "pending") ?? .pending
-        )
-    }
-    
-    /// 从领域模型 Reservation 创建或更新实体
-    @discardableResult
-    static func createOrUpdate(from reservation: Reservation, in context: NSManagedObjectContext) -> ReservationEntity {
-        let request: NSFetchRequest<ReservationEntity> = ReservationEntity.fetchRequest()
-        request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "id == %@", reservation.id)
-        
-        let entity = (try? context.fetch(request).first) ?? ReservationEntity(context: context)
-        
-        entity.id = reservation.id
-        entity.userId = reservation.userId
-        entity.parkingSpotId = reservation.parkingSpotId
-        entity.startTime = reservation.startTime
-        entity.endTime = reservation.endTime
-        entity.status = reservation.status.rawValue
-        entity.totalCost = reservation.totalCost
-        entity.paymentStatus = reservation.paymentStatus.rawValue
-        
-        // 用于记录与远端同步时间；若做离线队列，可再加 pendingSync 字段
-        entity.syncedAt = Date()
-        
-        return entity
-    }
-}
-
 extension FavoriteEntity {
     /// 切换收藏状态；存在则删除，不存在则新增。返回当前是否为"已收藏"
     @discardableResult

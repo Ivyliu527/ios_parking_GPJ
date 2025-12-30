@@ -145,81 +145,6 @@ final class FirebaseService {
         ])
     }
     
-    // MARK: - Reservations 预定
-    
-    /// 覆盖式同步预定记录数组
-    func syncReservations(userId: String, reservations: [Reservation]) async throws {
-        // 存在两种常见建模方式：
-        // A) users/{uid}/reservations 子集合（推荐，便于查询与权限控制）
-        // B) users/{uid} 文档内数组字段
-        // 这里采用 A 方案：子集合
-        let base = db.collection("users").document(userId).collection("reservations")
-        
-        // 批处理：先读取现有文档 id，删除不在新列表中的，再写入/覆盖新列表
-        let existing = try await base.getDocuments().documents
-        let existingIds = Set(existing.map { $0.documentID })
-        let incomingIds = Set(reservations.map { $0.id })
-        
-        let batch = db.batch()
-        
-        // 删除多余的
-        for doc in existing where !incomingIds.contains(doc.documentID) {
-            batch.deleteDocument(doc.reference)
-        }
-        
-        // 写入/覆盖
-        for item in reservations {
-            let ref = base.document(item.id)
-            var data: [String: Any] = [
-                "userId": item.userId,
-                "parkingSpotId": item.parkingSpotId,
-                "startTime": Timestamp(date: item.startTime),
-                "status": item.status.rawValue,
-                "totalCost": item.totalCost,
-                "paymentStatus": item.paymentStatus.rawValue
-            ]
-            if let endTime = item.endTime {
-                data["endTime"] = Timestamp(date: endTime)
-            }
-            batch.setData(data, forDocument: ref, merge: true)
-        }
-        
-        try await batch.commit()
-    }
-    
-    /// 获取预定记录（按时间倒序）
-    func fetchReservations(userId: String) async throws -> [Reservation] {
-        let base = db.collection("users").document(userId).collection("reservations")
-        let qs = try await base.order(by: "startTime", descending: true).getDocuments()
-        return qs.documents.compactMap { doc in
-            guard let data = doc.data() as? [String: Any],
-                  let parkingSpotId = data["parkingSpotId"] as? String,
-                  let startTimeTimestamp = data["startTime"] as? Timestamp,
-                  let statusString = data["status"] as? String,
-                  let status = Reservation.ReservationStatus(rawValue: statusString),
-                  let totalCost = data["totalCost"] as? Double,
-                  let paymentStatusString = data["paymentStatus"] as? String,
-                  let paymentStatus = Reservation.PaymentStatus(rawValue: paymentStatusString) else {
-                return nil
-            }
-            
-            var endTime: Date?
-            if let endTimeTimestamp = data["endTime"] as? Timestamp {
-                endTime = endTimeTimestamp.dateValue()
-            }
-            
-            return Reservation(
-                id: doc.documentID,
-                userId: data["userId"] as? String ?? userId,
-                parkingSpotId: parkingSpotId,
-                startTime: startTimeTimestamp.dateValue(),
-                endTime: endTime,
-                status: status,
-                totalCost: totalCost,
-                paymentStatus: paymentStatus
-            )
-        }
-    }
 }
 
 // MARK: - Firestore 模型
@@ -246,30 +171,6 @@ struct UserDoc: Codable {
         self.updatedAt = updatedAt
     }
 }
-
-/// 你的 Reservation 模型示例（若你已有，确保字段名/类型与 Firestore 对齐）
-//struct Reservation: Codable, Identifiable {
-//    // 使用字符串 ID；创建时可以用 UUID().uuidString
-//    var id: String
-//    var userId: String
-//    var lotId: String
-//    var lotName: String
-//    var startTime: Date
-//    var endTime: Date
-//    var price: Double
-//    var vehiclePlate: String?
-//    
-//    init(id: String, userId: String, lotId: String, lotName: String, startTime: Date, endTime: Date, price: Double, vehiclePlate: String?) {
-//        self.id = id
-//        self.userId = userId
-//        self.lotId = lotId
-//        self.lotName = lotName
-//        self.startTime = startTime
-//        self.endTime = endTime
-//        self.price = price
-//        self.vehiclePlate = vehiclePlate
-//    }
-//}
 
 // MARK: - 错误定义（保持与原有调用方风格接近）
 

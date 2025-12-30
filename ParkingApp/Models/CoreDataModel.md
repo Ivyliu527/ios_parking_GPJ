@@ -22,18 +22,7 @@
 - **lastUpdated**: Date? (可选)
 - **cachedAt**: Date (必需，用于缓存时间戳)
 
-### 2. ReservationEntity
-- **id**: String (必需)
-- **userId**: String (必需)
-- **parkingSpotId**: String (必需)
-- **startTime**: Date (必需)
-- **endTime**: Date? (可选)
-- **status**: String (必需，枚举值: "active", "completed", "cancelled")
-- **totalCost**: Double (必需)
-- **paymentStatus**: String (必需，枚举值: "pending", "paid", "refunded")
-- **syncedAt**: Date (可选，用于同步时间戳)
-
-### 3. FavoriteEntity
+### 2. FavoriteEntity
 - **userId**: String (必需)
 - **parkingLotId**: String (必需)
 - **createdAt**: Date (必需)
@@ -44,7 +33,7 @@
 2. 选择 "New File..."
 3. 选择 "Data Model"
 4. 命名为 `ParkingDataModel`
-5. 添加上述三个实体及其属性
+5. 添加上述两个实体及其属性
 6. 确保所有实体都继承自 `NSManagedObject`
 
 ## 注意事项

@@ -23,15 +23,4 @@
         <attribute name="priceRules" optional="YES" attributeType="String"/>
         <attribute name="totalSpaces" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
-    <entity name="ReservationEntity" representedClassName=".ReservationEntity" syncable="YES" codeGenerationType="class">
-        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="id" attributeType="String"/>
-        <attribute name="parkingSpotId" attributeType="String"/>
-        <attribute name="paymentStatus" attributeType="String"/>
-        <attribute name="startTime" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="status" attributeType="String"/>
-        <attribute name="syncedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="totalCost" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="userId" attributeType="String"/>
-    </entity>
 </model>

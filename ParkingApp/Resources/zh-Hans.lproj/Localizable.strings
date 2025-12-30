@@ -69,6 +69,23 @@
 "last_updated" = "最后更新";
 "network_unavailable" = "网络不可用";
 
+// Favorites
+"favorite" = "收藏";
+"add_to_favorites" = "添加到收藏";
+"remove_from_favorites" = "取消收藏";
+"favorites" = "收藏";
+"favorite_parking_lots" = "收藏的停车场";
+"no_favorites" = "暂无收藏";
+"add_favorites_hint" = "在停车场详情页点击收藏按钮，将停车场添加到收藏列表";
+"login_to_view_favorites" = "请先登录以查看收藏的停车场";
+
+"spot_number" = "车位号";
+"floor" = "楼层";
+"price" = "价格";
+"features" = "设施";
+"hours" = "小时";
+"please_login" = "请先登录以使用此功能";
+
 // Settings
 "settings" = "设置";
 "language_settings" = "语言";

@@ -1,10 +1,3 @@
-//
-//  ParkingLotsListView.swift
-//  ParkingApp
-//
-//  Created on 2025
-//
-
 import SwiftUI
 import CoreLocation
 
@@ -15,167 +8,31 @@ struct ParkingLotsListView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var selectedLot: ParkingLot?
     @State private var showingDetail = false
-    
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     // 0. 离线模式提示
                     if parkingLotViewModel.isOfflineMode {
-                        HStack {
-                            Image(systemName: "wifi.slash")
-                                .foregroundColor(.orange)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(NSLocalizedString("offline_mode"))
-                                    .font(.headline)
-                                if let cacheTime = parkingLotViewModel.lastCacheTime {
-                                    Text(NSLocalizedString("last_updated") + ": \(formatCacheTime(cacheTime))")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            Spacer()
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
-                        .padding(.top)
+                        offlineBanner
                     }
                     
                     // 1. 当前位置
                     if locationManager.currentLocation != nil {
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .foregroundColor(.blue)
-                            Text(NSLocalizedString("current_location"))
-                                .font(.headline)
-                            Spacer()
-                            if let address = locationManager.currentAddress {
-                                Text(address)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(2)
-                            } else {
-                                Text(NSLocalizedString("loading"))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
-                        .padding(.top)
+                        currentLocationBar
                     }
                     
                     // 2. 搜索框和地址候选列表
-                    VStack(spacing: 0) {
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.gray)
-                            TextField(NSLocalizedString("search_placeholder"), text: $parkingLotViewModel.searchText)
-                                .onChange(of: parkingLotViewModel.searchText) { _ in
-                                    parkingLotViewModel.onSearchTextChanged()
-                                }
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(10)
-                        
-                        // 地址候选下拉列表
-                        if !parkingLotViewModel.addressSuggestions.isEmpty {
-                            VStack(alignment: .leading, spacing: 0) {
-                                ForEach(parkingLotViewModel.addressSuggestions) { suggestion in
-                                    Button(action: {
-                                        parkingLotViewModel.selectAddressSuggestion(suggestion)
-                                    }) {
-                                        HStack {
-                                            Image(systemName: "mappin.circle.fill")
-                                                .foregroundColor(.blue)
-                                            Text(suggestion.address)
-                                                .foregroundColor(.primary)
-                                            Spacer()
-                                        }
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 12)
-                                    }
-                                    
-                                    if suggestion.id != parkingLotViewModel.addressSuggestions.last?.id {
-                                        Divider()
-                                            .padding(.leading, 40)
-                                    }
-                                }
-                            }
-                            .background(Color(.systemBackground))
-                            .cornerRadius(10)
-                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                            .padding(.top, 4)
-                        }
-                    }
-                    .padding(.horizontal)
+                    searchSection
                     
                     // 4. 当前位置最近停车场卡片
                     if let currentLocation = locationManager.currentLocation,
                        let nearestLot = nearestParkingLot {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text(NSLocalizedString("nearest_parking"))
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                Spacer()
-                            }
-                            
-                            NearestParkingCard(
-                                lot: nearestLot,
-                                currentLocation: currentLocation
-                            ) {
-                                selectedLot = nearestLot
-                                showingDetail = true
-                            }
-                        }
-                        .padding(.horizontal)
+                        nearestSection(nearestLot: nearestLot, currentLocation: currentLocation)
                     }
                     
                     // 5. 附近停车场卡片列表
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(NSLocalizedString("nearby_parking"))
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        
-                        if parkingLotViewModel.isLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                        } else if nearbyParkingLots.isEmpty {
-                            VStack {
-                                Image(systemName: "parkinglot")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(.gray)
-                                Text(NSLocalizedString("no_results"))
-                                    .foregroundColor(.gray)
-                                    .padding(.top)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                        } else {
-                            ForEach(nearbyParkingLots) { lot in
-                                ParkingLotRow(
-                                    lot: lot,
-                                    currentLocation: locationManager.currentLocation
-                                ) {
-                                    selectedLot = lot
-                                    showingDetail = true
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                    }
-                    .padding(.top, 8)
+                    nearbySection
                 }
                 .padding(.bottom)
             }
@@ -204,11 +61,173 @@ struct ParkingLotsListView: View {
             }
             .sheet(isPresented: $showingDetail) {
                 if let lot = selectedLot {
+                    // 这里不要再传 .environmentObject(authViewModel)
                     ParkingLotDetailView(lot: lot, currentLocation: locationManager.currentLocation)
                 }
             }
         }
     }
+    
+    // MARK: - 子视图拆分，减轻类型推断
+    
+    private var offlineBanner: some View {
+        HStack {
+            Image(systemName: "wifi.slash")
+                .foregroundColor(.orange)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("offline_mode"))
+                    .font(.headline)
+                if let cacheTime = parkingLotViewModel.lastCacheTime {
+                    Text(NSLocalizedString("last_updated") + ": \(formatCacheTime(cacheTime))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(10)
+        .padding(.horizontal)
+        .padding(.top)
+    }
+    
+    private var currentLocationBar: some View {
+        HStack {
+            Image(systemName: "location.fill")
+                .foregroundColor(.blue)
+            Text(NSLocalizedString("current_location"))
+                .font(.headline)
+            Spacer()
+            if let address = locationManager.currentAddress {
+                Text(address)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            } else {
+                Text(NSLocalizedString("loading"))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .padding(.horizontal)
+        .padding(.top)
+    }
+    
+    private var searchSection: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                TextField(NSLocalizedString("search_placeholder"), text: $parkingLotViewModel.searchText)
+                    .onChange(of: parkingLotViewModel.searchText) { _ in
+                        parkingLotViewModel.onSearchTextChanged()
+                    }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(10)
+            
+            // 地址候选下拉列表
+            if !parkingLotViewModel.addressSuggestions.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(parkingLotViewModel.addressSuggestions) { suggestion in
+                        Button(action: {
+                            parkingLotViewModel.selectAddressSuggestion(suggestion)
+                        }) {
+                            HStack {
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text(suggestion.address)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
+                        }
+                        
+                        if suggestion.id != parkingLotViewModel.addressSuggestions.last?.id {
+                            Divider()
+                                .padding(.leading, 40)
+                        }
+                    }
+                }
+                .background(Color(.systemBackground))
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                .padding(.top, 4)
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    private func nearestSection(nearestLot: ParkingLot, currentLocation: CLLocation) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(NSLocalizedString("nearest_parking"))
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            
+            NearestParkingCard(
+                lot: nearestLot,
+                currentLocation: currentLocation
+            ) {
+                selectedLot = nearestLot
+                showingDetail = true
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    private var nearbySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(NSLocalizedString("nearby_parking"))
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            if parkingLotViewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            } else if nearbyParkingLots.isEmpty {
+                VStack {
+                    Image(systemName: "parkinglot")
+                        .font(.system(size: 60))
+                        .foregroundColor(.gray)
+                    Text(NSLocalizedString("no_results"))
+                        .foregroundColor(.gray)
+                        .padding(.top)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+            } else {
+                // 提前捕获当前定位，减少闭包类型推断复杂度
+                let currentLocation = locationManager.currentLocation
+                ForEach(nearbyParkingLots) { lot in
+                    ParkingLotRow(
+                        lot: lot,
+                        currentLocation: currentLocation
+                    ) {
+                        selectedLot = lot
+                        showingDetail = true
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .padding(.top, 8)
+    }
+    
+    // MARK: - 计算属性（加显式类型）
     
     // 计算最近的停车场
     private var nearestParkingLot: ParkingLot? {
@@ -217,11 +236,12 @@ struct ParkingLotsListView: View {
             return nil
         }
         
-        return parkingLotViewModel.filtered.min { lot1, lot2 in
+        let result: ParkingLot? = parkingLotViewModel.filtered.min { lot1, lot2 in
             let distance1 = currentLocation.distance(from: lot1.location)
             let distance2 = currentLocation.distance(from: lot2.location)
             return distance1 < distance2
         }
+        return result
     }
     
     // 获取附近停车场列表（排除最近的）
@@ -229,7 +249,8 @@ struct ParkingLotsListView: View {
         guard let nearest = nearestParkingLot else {
             return parkingLotViewModel.filtered
         }
-        return parkingLotViewModel.filtered.filter { $0.id != nearest.id }
+        let list: [ParkingLot] = parkingLotViewModel.filtered.filter { $0.id != nearest.id }
+        return list
     }
     
     // 格式化缓存时间
@@ -240,7 +261,6 @@ struct ParkingLotsListView: View {
         formatter.locale = Locale.current
         return formatter.string(from: date)
     }
-    
 }
 
 // 最近停车场卡片
@@ -248,7 +268,6 @@ struct NearestParkingCard: View {
     let lot: ParkingLot
     let currentLocation: CLLocation
     let onTap: () -> Void
-    
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     
     var body: some View {
@@ -262,11 +281,19 @@ struct NearestParkingCard: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
                             
-                            if authViewModel.isFavorite(parkingLotId: lot.id) {
-                                Image(systemName: "heart.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                            Spacer()
+                            
+                            // 收藏按钮
+                            Button(action: {
+                                if authViewModel.isAuthenticated {
+                                    authViewModel.toggleFavorite(parkingLotId: lot.id)
+                                }
+                            }) {
+                                Image(systemName: authViewModel.isFavorite(parkingLotId: lot.id) ? "heart.fill" : "heart")
+                                    .font(.subheadline)
+                                    .foregroundColor(authViewModel.isFavorite(parkingLotId: lot.id) ? .red : .gray)
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
                         
                         HStack {
@@ -377,7 +404,6 @@ struct ParkingLotRow: View {
     let lot: ParkingLot
     let currentLocation: CLLocation?
     let onTap: () -> Void
-    
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @State private var showingFavoriteAlert = false
     
@@ -391,12 +417,19 @@ struct ParkingLotRow: View {
                                 .font(.headline)
                                 .foregroundColor(.primary)
                             
-                            // 收藏愛心圖標
-                            if authViewModel.isFavorite(parkingLotId: lot.id) {
-                                Image(systemName: "heart.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                            Spacer()
+                            
+                            // 收藏按钮
+                            Button(action: {
+                                if authViewModel.isAuthenticated {
+                                    authViewModel.toggleFavorite(parkingLotId: lot.id)
+                                }
+                            }) {
+                                Image(systemName: authViewModel.isFavorite(parkingLotId: lot.id) ? "heart.fill" : "heart")
+                                    .font(.subheadline)
+                                    .foregroundColor(authViewModel.isFavorite(parkingLotId: lot.id) ? .red : .gray)
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
                         
                         Text(lot.address)
@@ -486,7 +519,7 @@ struct ParkingLotRow: View {
         } message: {
             Text(authViewModel.isFavorite(parkingLotId: lot.id) ?
                  "Remove \(lot.name) from favorites?" :
-                 "Add \(lot.name) to favorites?")
+                    "Add \(lot.name) to favorites?")
         }
     }
     
@@ -508,19 +541,14 @@ struct ParkingLotRow: View {
     }
     
     private func toggleFavorite() {
-        // 保护：只有在用户已登录时才允许切换收藏
         guard authViewModel.isAuthenticated else {
-            // 如果未登入，可以提示登入
             showingFavoriteAlert = true
             return
         }
-        
-        // 再次检查，确保用户对象存在
         guard authViewModel.currentUser != nil else {
             print("⚠️ 用户对象不存在，无法切换收藏")
             return
         }
-        
         authViewModel.toggleFavorite(parkingLotId: lot.id)
     }
     
@@ -530,8 +558,6 @@ struct ParkingLotRow: View {
             activityItems: [shareText],
             applicationActivities: nil
         )
-        
-        // 在 iOS 中顯示分享面板
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootVC = windowScene.windows.first?.rootViewController {
             rootVC.present(activityVC, animated: true)
@@ -542,7 +568,6 @@ struct ParkingLotRow: View {
 /// 筛选和排序视图（任务5）
 struct FilterAndSortView: View {
     @EnvironmentObject var viewModel: ParkingLotViewModel
-    
     var body: some View {
         VStack(spacing: 12) {
             // 筛选开关
@@ -629,4 +654,3 @@ struct FilterAndSortView: View {
         }
     }
 }
-

@@ -12,6 +12,7 @@ import CoreLocation
 /// 停车场地图视图
 struct ParkingLotsMapView: View {
     @EnvironmentObject var parkingLotViewModel: ParkingLotViewModel
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @StateObject private var locationManager = LocationManager()
     @State private var region = MKCoordinateRegion(
@@ -122,6 +123,7 @@ struct ParkingLotsMapView: View {
             .sheet(isPresented: $showingDetail) {
                 if let lot = selectedLot {
                     ParkingLotDetailView(lot: lot, currentLocation: locationManager.currentLocation)
+                        .environmentObject(authViewModel)
                 }
             }
         }

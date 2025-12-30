@@ -128,3 +128,20 @@
 "offline_mode" = "Offline Mode";
 "last_updated" = "Last Updated";
 "network_unavailable" = "Network Unavailable";
+
+// Favorites
+"favorite" = "Favorite";
+"add_to_favorites" = "Add to Favorites";
+"remove_from_favorites" = "Remove from Favorites";
+"favorites" = "Favorites";
+"favorite_parking_lots" = "Favorite Parking Lots";
+"no_favorites" = "No favorites yet";
+"add_favorites_hint" = "Tap the favorite button on parking lot details to add parking lots to your favorites";
+"login_to_view_favorites" = "Please login to view your favorite parking lots";
+
+"spot_number" = "Spot Number";
+"floor" = "Floor";
+"price" = "Price";
+"features" = "Features";
+"hours" = "Hours";
+"please_login" = "Please login to use this feature";

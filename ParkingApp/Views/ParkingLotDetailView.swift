@@ -14,7 +14,9 @@ struct ParkingLotDetailView: View {
     let lot: ParkingLot
     let currentLocation: CLLocation?
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @State private var showingNavigationOptions = false
+    @State private var showingLoginAlert = false
     
     var body: some View {
         NavigationStack {
@@ -155,6 +157,34 @@ struct ParkingLotDetailView: View {
                         .cornerRadius(12)
                     }
                     
+                    // 收藏按钮
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            if authViewModel.isAuthenticated {
+                                authViewModel.toggleFavorite(parkingLotId: lot.id)
+                            } else {
+                                showingLoginAlert = true
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: authViewModel.isFavorite(parkingLotId: lot.id) ? "heart.fill" : "heart")
+                                Text(authViewModel.isFavorite(parkingLotId: lot.id) ? 
+                                     NSLocalizedString("remove_from_favorites") : 
+                                     NSLocalizedString("add_to_favorites"))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(authViewModel.isFavorite(parkingLotId: lot.id) ? Color.red.opacity(0.1) : Color(.systemGray5))
+                            .foregroundColor(authViewModel.isFavorite(parkingLotId: lot.id) ? .red : .primary)
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(authViewModel.isFavorite(parkingLotId: lot.id) ? Color.red : Color.clear, lineWidth: 2)
+                            )
+                        }
+                    }
+                    .padding(.top)
+                    
                     // 导航按钮
                     VStack(spacing: 12) {
                         Button(action: {
@@ -166,8 +196,8 @@ struct ParkingLotDetailView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
                             .cornerRadius(10)
                         }
                         
@@ -181,13 +211,13 @@ struct ParkingLotDetailView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.green)
-                                .foregroundColor(.white)
+                                .background(Color.green.opacity(0.1))
+                                .foregroundColor(.green)
                                 .cornerRadius(10)
                             }
                         }
                     }
-                    .padding(.top)
+                    .padding(.top, 8)
                 }
                 .padding()
             }
@@ -206,6 +236,9 @@ struct ParkingLotDetailView: View {
                     destination: lot.location,
                     destinationName: lot.name
                 )
+            }
+            .alert(NSLocalizedString("please_login"), isPresented: $showingLoginAlert) {
+                Button(NSLocalizedString("done"), role: .cancel) { }
             }
         }
     }
@@ -350,4 +383,5 @@ struct MapRouteView: View {
         }
     }
 }
+
 

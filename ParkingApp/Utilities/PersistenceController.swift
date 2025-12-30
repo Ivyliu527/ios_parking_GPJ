@@ -30,7 +30,7 @@ class PersistenceController {
                 print("⚠️ 请检查：")
                 print("   1. ParkingDataModel.xcdatamodeld 文件是否存在")
                 print("   2. 文件是否已添加到 Target Membership")
-                print("   3. 模型文件中是否包含 FavoriteEntity, ParkingLotEntity, ReservationEntity")
+                print("   3. 模型文件中是否包含 FavoriteEntity, ParkingLotEntity")
                 // 不 fatalError，允许应用继续运行（但收藏功能可能不可用）
                 // fatalError("Core Data 加载失败: \(error.localizedDescription)")
             } else {

@@ -9,9 +9,7 @@ import SwiftUI
 
 struct ParkingListView: View {
     @EnvironmentObject var parkingViewModel: ParkingViewModel
-    @EnvironmentObject var reservationViewModel: ReservationViewModel
     @EnvironmentObject var authViewModel: AuthenticationViewModel
-    @State private var showingReservationSheet = false
     @State private var selectedSpot: ParkingSpot?
     
     var body: some View {
@@ -78,8 +76,7 @@ struct ParkingListView: View {
                 } else {
                     List(parkingViewModel.filteredSpots) { spot in
                         ParkingSpotRow(spot: spot) {
-                            selectedSpot = spot
-                            showingReservationSheet = true
+                            // 点击停车位时的操作（可以导航到详情页等）
                         }
                     }
                     .listStyle(PlainListStyle())
@@ -88,11 +85,6 @@ struct ParkingListView: View {
             .navigationTitle("Parking Spots")
             .onAppear {
                 parkingViewModel.loadParkingSpots()
-            }
-            .sheet(item: $selectedSpot) { spot in
-                ReservationView(spot: spot)
-                    .environmentObject(reservationViewModel)
-                    .environmentObject(authViewModel)
             }
         }
     }

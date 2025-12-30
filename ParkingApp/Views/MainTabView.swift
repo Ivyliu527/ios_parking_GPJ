@@ -11,7 +11,6 @@ struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @ObservedObject private var languageManager = LanguageManager.shared
     @StateObject private var parkingViewModel = ParkingViewModel()
-    @StateObject private var reservationViewModel = ReservationViewModel()
     @StateObject private var parkingLotViewModel = ParkingLotViewModel()
     
     var body: some View {
@@ -27,15 +26,16 @@ struct MainTabView: View {
             // 停车场地图视图
             ParkingLotsMapView()
                 .environmentObject(parkingLotViewModel)
+                .environmentObject(authViewModel)
                 .tabItem {
                     Label(NSLocalizedString("parking_map_title"), systemImage: "map")
                 }
             
-            ReservationHistoryView()
-                .environmentObject(reservationViewModel)
+            FavoritesView()
                 .environmentObject(authViewModel)
+                .environmentObject(parkingLotViewModel)
                 .tabItem {
-                    Label(NSLocalizedString("history_title"), systemImage: "clock")
+                    Label(NSLocalizedString("favorites"), systemImage: "heart")
                 }
             
             ProfileView()
