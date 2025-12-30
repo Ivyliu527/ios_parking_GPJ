@@ -15,24 +15,95 @@ class ReservationViewModel: ObservableObject {
     @Published var isLoading = false
     
     private let parkingService = ParkingService.shared
-    private let userDefaults = UserDefaults.standard
-    private let reservationsKey = "reservations"
+    private let networkService = NetworkService.shared
+    private let networkMonitor = NetworkMonitor.shared
+    private let coreDataService = CoreDataService.shared
+    private var currentUserId: String?
     
     init() {
-        loadReservations()
+        // 监听用户登录状态变化
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(userDidLogin),
+            name: NSNotification.Name("UserDidLogin"),
+            object: nil
+        )
+        
+        // 如果已有用户登录，加载数据
+        if let userData = UserDefaults.standard.data(forKey: "currentUser"),
+           let user = try? JSONDecoder().decode(User.self, from: userData) {
+            currentUserId = user.id
+            loadReservations()
+        }
+    }
+    
+    @objc private func userDidLogin(_ notification: Notification) {
+        if let userId = notification.userInfo?["userId"] as? String {
+            currentUserId = userId
+            loadReservations()
+        }
     }
     
     func loadReservations() {
-        if let data = userDefaults.data(forKey: reservationsKey),
-           let decoded = try? JSONDecoder().decode([Reservation].self, from: data) {
-            reservations = decoded
-            activeReservation = reservations.first { $0.status == .active }
+        guard let userId = currentUserId else { return }
+        
+        // 从 Core Data 加载
+        reservations = coreDataService.loadReservations(userId: userId)
+        activeReservation = reservations.first { $0.status == .active }
+        
+        // 如果有网络，尝试同步服务器数据
+        if networkMonitor.isConnected {
+            Task {
+                await syncReservationsFromServer(userId: userId)
+            }
+        }
+    }
+    
+    private func syncReservationsFromServer(userId: String) async {
+        do {
+            let serverReservations = try await networkService.fetchReservations(userId: userId)
+            await MainActor.run {
+                // 合并服务器和本地数据
+                var mergedReservations: [Reservation] = []
+                var serverReservationIds = Set(serverReservations.map { $0.id })
+                
+                // 添加服务器数据
+                mergedReservations.append(contentsOf: serverReservations)
+                
+                // 添加本地有但服务器没有的数据（未同步的本地数据）
+                for localReservation in self.reservations {
+                    if !serverReservationIds.contains(localReservation.id) {
+                        mergedReservations.append(localReservation)
+                    }
+                }
+                
+                // 更新到 Core Data
+                self.reservations = mergedReservations
+                self.coreDataService.saveReservations(mergedReservations)
+                
+                // 更新活动预定
+                self.activeReservation = mergedReservations.first { $0.status == .active }
+            }
+        } catch {
+            print("从服务器同步预定记录失败: \(error)")
         }
     }
     
     func saveReservations() {
-        if let encoded = try? JSONEncoder().encode(reservations) {
-            userDefaults.set(encoded, forKey: reservationsKey)
+        guard let userId = currentUserId else { return }
+        
+        // 保存到 Core Data
+        coreDataService.saveReservations(reservations)
+        
+        // 如果有网络，同步到服务器
+        if networkMonitor.isConnected {
+            Task {
+                do {
+                    try await networkService.syncReservations(userId: userId, reservations: reservations)
+                } catch {
+                    print("同步预定记录到服务器失败: \(error)")
+                }
+            }
         }
     }
     
@@ -40,6 +111,8 @@ class ReservationViewModel: ObservableObject {
         guard parkingService.reserveSpot(spotId) else {
             return nil
         }
+        
+        currentUserId = userId
         
         let startTime = Date()
         let endTime = startTime.addingTimeInterval(duration)
@@ -59,7 +132,20 @@ class ReservationViewModel: ObservableObject {
         
         reservations.append(reservation)
         activeReservation = reservation
-        saveReservations()
+        
+        // 保存到 Core Data
+        coreDataService.saveReservation(reservation)
+        
+        // 如果有网络，同步到服务器
+        if networkMonitor.isConnected {
+            Task {
+                do {
+                    try await networkService.syncReservations(userId: userId, reservations: reservations)
+                } catch {
+                    print("同步预定记录到服务器失败: \(error)")
+                }
+            }
+        }
         
         return reservation
     }
@@ -71,7 +157,20 @@ class ReservationViewModel: ObservableObject {
             if activeReservation?.id == reservation.id {
                 activeReservation = nil
             }
-            saveReservations()
+            
+            // 更新 Core Data
+            coreDataService.saveReservation(reservations[index])
+            
+            // 如果有网络，同步到服务器
+            if networkMonitor.isConnected, let userId = currentUserId {
+                Task {
+                    do {
+                        try await networkService.syncReservations(userId: userId, reservations: reservations)
+                    } catch {
+                        print("同步预定记录到服务器失败: \(error)")
+                    }
+                }
+            }
         }
     }
     
@@ -83,7 +182,20 @@ class ReservationViewModel: ObservableObject {
             if activeReservation?.id == reservation.id {
                 activeReservation = nil
             }
-            saveReservations()
+            
+            // 更新 Core Data
+            coreDataService.saveReservation(reservations[index])
+            
+            // 如果有网络，同步到服务器
+            if networkMonitor.isConnected, let userId = currentUserId {
+                Task {
+                    do {
+                        try await networkService.syncReservations(userId: userId, reservations: reservations)
+                    } catch {
+                        print("同步预定记录到服务器失败: \(error)")
+                    }
+                }
+            }
         }
     }
     

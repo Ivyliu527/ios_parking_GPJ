@@ -125,3 +125,6 @@
 "where_to_park" = "Where would you like to park?";
 "nearest_parking" = "Nearest Parking";
 "nearby_parking" = "Nearby Parking";
+"offline_mode" = "Offline Mode";
+"last_updated" = "Last Updated";
+"network_unavailable" = "Network Unavailable";

@@ -11,5 +11,8 @@ import Foundation
 protocol ParkingLotProviding {
     /// 获取停车场列表
     func fetchLots() async throws -> [ParkingLot]
+    
+    /// 获取缓存时间戳（可选）
+    func getCacheTimestamp() -> Date?
 }
 

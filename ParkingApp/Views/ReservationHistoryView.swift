@@ -10,10 +10,13 @@ import SwiftUI
 struct ReservationHistoryView: View {
     @EnvironmentObject var reservationViewModel: ReservationViewModel
     @EnvironmentObject var authViewModel: AuthenticationViewModel
+    @ObservedObject private var networkMonitor = NetworkMonitor.shared
     
     private var userReservations: [Reservation] {
         guard let user = authViewModel.currentUser else { return [] }
-        return reservationViewModel.getReservationsForUser(user.id)
+        // 从 ViewModel 获取，ViewModel 已经从 Core Data 加载
+        return reservationViewModel.reservations
+            .filter { $0.userId == user.id }
             .sorted { $0.startTime > $1.startTime }
     }
     
@@ -26,8 +29,27 @@ struct ReservationHistoryView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
+                // 离线模式提示
+                if !networkMonitor.isConnected {
+                    Section {
+                        HStack {
+                            Image(systemName: "wifi.slash")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("offline_mode"))
+                                    .font(.headline)
+                                Text(NSLocalizedString("network_unavailable"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                
                 if !activeReservations.isEmpty {
                     Section(header: Text("Active Reservations")) {
                         ForEach(activeReservations) { reservation in
@@ -50,7 +72,9 @@ struct ReservationHistoryView: View {
             }
             .navigationTitle("Reservation History")
             .refreshable {
-                reservationViewModel.loadReservations()
+                if networkMonitor.isConnected {
+                    reservationViewModel.loadReservations()
+                }
             }
         }
     }

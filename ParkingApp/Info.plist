@@ -52,6 +52,11 @@
 	<string>我们需要您的位置以推荐附近的停车场。</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>我们需要您的位置以推荐附近的停车场。</string>
+	<!-- API 配置：将以下 URL 替换为您的实际后端 API 地址 -->
+	<!-- 例如：https://api.yourdomain.com/api 或 http://localhost:3000/api -->
+	<!-- 如果不需要从 Info.plist 读取，可以在 NetworkService.swift 中直接修改 baseURL -->
+	<!-- <key>APIBaseURL</key> -->
+	<!-- <string>https://your-api-server.com/api</string> -->
 </dict>
 </plist>
 

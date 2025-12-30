@@ -65,6 +65,9 @@
 "where_to_park" = "你想去哪里停车？";
 "nearest_parking" = "最近停车场";
 "nearby_parking" = "附近停车场";
+"offline_mode" = "离线模式";
+"last_updated" = "最后更新";
+"network_unavailable" = "网络不可用";
 
 // Settings
 "settings" = "设置";

@@ -6,32 +6,60 @@
 //
 
 import Foundation
+import Combine
 
 /// 停车场服务实现
 /// 数据源：data.gov.hk - 香港政府数据一站通
-/// 注意：当前使用模拟数据，真实数据源需要根据 data.gov.hk 的实际 API 进行调整
-class ParkingLotService: ParkingLotProviding {
+/// 使用 Core Data 进行本地缓存
+class ParkingLotService: ParkingLotProviding, ObservableObject {
     static let shared = ParkingLotService()
     
-    private let cacheKey = "parkingLotsCache"
-    private let cacheTimestampKey = "parkingLotsCacheTimestamp"
+    private let networkMonitor = NetworkMonitor.shared
+    private let coreDataService = CoreDataService.shared
     private let cacheExpirationInterval: TimeInterval = 24 * 60 * 60 // 24小时
     
-    private init() {}
+    @Published var lastCacheTime: Date?
+    @Published var isOfflineMode: Bool = false
+    
+    private init() {
+        // 初始化时加载缓存时间
+        lastCacheTime = coreDataService.getCacheTimestamp()
+    }
     
     /// 获取停车场列表
     /// 优先使用缓存，过期则从网络获取
     func fetchLots() async throws -> [ParkingLot] {
-        // 检查缓存
-        if let cachedLots = loadCachedLots(), !isCacheExpired() {
+        // 检查网络连接
+        let isConnected = networkMonitor.isConnected
+        isOfflineMode = !isConnected
+        
+        // 从 Core Data 加载缓存
+        let cachedLots = coreDataService.loadParkingLots()
+        
+        // 如果有缓存且未过期，直接返回
+        if let cacheTime = coreDataService.getCacheTimestamp(),
+           Date().timeIntervalSince(cacheTime) < cacheExpirationInterval,
+           !cachedLots.isEmpty {
+            lastCacheTime = cacheTime
             return cachedLots
         }
         
-        // 从网络获取（当前返回模拟数据，后续替换为真实 API）
+        // 如果没有网络，返回缓存数据（即使过期）
+        if !isConnected {
+            if !cachedLots.isEmpty {
+                lastCacheTime = coreDataService.getCacheTimestamp()
+                return cachedLots
+            }
+            throw NSError(domain: "ParkingLotService", code: -1, userInfo: [NSLocalizedDescriptionKey: "网络不可用且无缓存数据"])
+        }
+        
+        // 从网络获取
         let lots = try await fetchLotsFromNetwork()
         
-        // 保存到缓存
-        saveCachedLots(lots)
+        // 保存到 Core Data
+        coreDataService.saveParkingLots(lots)
+        lastCacheTime = Date()
+        isOfflineMode = false
         
         return lots
     }
@@ -165,29 +193,9 @@ class ParkingLotService: ParkingLotProviding {
         return parkingLots
     }
     
-    /// 加载缓存的停车场数据
-    private func loadCachedLots() -> [ParkingLot]? {
-        guard let data = UserDefaults.standard.data(forKey: cacheKey),
-              let lots = try? JSONDecoder().decode([ParkingLot].self, from: data) else {
-            return nil
-        }
-        return lots
-    }
-    
-    /// 保存停车场数据到缓存
-    private func saveCachedLots(_ lots: [ParkingLot]) {
-        if let data = try? JSONEncoder().encode(lots) {
-            UserDefaults.standard.set(data, forKey: cacheKey)
-            UserDefaults.standard.set(Date(), forKey: cacheTimestampKey)
-        }
-    }
-    
-    /// 检查缓存是否过期
-    private func isCacheExpired() -> Bool {
-        guard let timestamp = UserDefaults.standard.object(forKey: cacheTimestampKey) as? Date else {
-            return true
-        }
-        return Date().timeIntervalSince(timestamp) > cacheExpirationInterval
+    /// 获取缓存时间戳（用于显示）
+    func getCacheTimestamp() -> Date? {
+        return coreDataService.getCacheTimestamp()
     }
     
     /// 模拟停车场数据（用于开发和测试）

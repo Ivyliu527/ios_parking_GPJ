@@ -32,11 +32,14 @@ class ParkingLotViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var addressSuggestions: [AddressSuggestion] = []
     @Published var searchReferenceLocation: CLLocation? // 用于距离排序的参考位置
+    @Published var isOfflineMode = false
+    @Published var lastCacheTime: Date?
     
     @Published var filters: Filters = Filters()
     @Published var sortBy: ParkingLotSortBy = .distance
     
-    private let parkingLotService: ParkingLotProviding
+    private let parkingLotService: ParkingLotService
+    private let networkMonitor = NetworkMonitor.shared
     private var currentLocation: CLLocation?
     private let geocoder = CLGeocoder()
     
@@ -47,8 +50,11 @@ class ParkingLotViewModel: ObservableObject {
         var onlyAvailable: Bool = false
     }
     
-    init(parkingLotService: ParkingLotProviding = ParkingLotService.shared) {
+    init(parkingLotService: ParkingLotService = ParkingLotService.shared) {
         self.parkingLotService = parkingLotService
+        // 初始化时检查离线状态
+        self.isOfflineMode = !networkMonitor.isConnected
+        self.lastCacheTime = parkingLotService.getCacheTimestamp()
     }
     
     /// 加载停车场列表
@@ -60,12 +66,23 @@ class ParkingLotViewModel: ObservableObject {
                 let fetchedLots = try await parkingLotService.fetchLots()
                 await MainActor.run {
                     self.lots = fetchedLots
+                    self.isOfflineMode = parkingLotService.isOfflineMode
+                    self.lastCacheTime = parkingLotService.lastCacheTime ?? parkingLotService.getCacheTimestamp()
                     self.applyFiltersAndSort(currentLocation: self.currentLocation)
                     self.isLoading = false
                 }
             } catch {
                 await MainActor.run {
                     print("Error loading parking lots: \(error)")
+                    // 即使出错，也尝试从缓存加载
+                    if self.lots.isEmpty {
+                        let cachedLots = CoreDataService.shared.loadParkingLots()
+                        if !cachedLots.isEmpty {
+                            self.lots = cachedLots
+                            self.isOfflineMode = true
+                            self.lastCacheTime = CoreDataService.shared.getCacheTimestamp()
+                        }
+                    }
                     self.isLoading = false
                 }
             }

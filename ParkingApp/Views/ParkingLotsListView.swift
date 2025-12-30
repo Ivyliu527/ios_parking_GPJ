@@ -11,6 +11,7 @@ import CoreLocation
 /// 停车场列表视图
 struct ParkingLotsListView: View {
     @EnvironmentObject var parkingLotViewModel: ParkingLotViewModel
+    @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @StateObject private var locationManager = LocationManager()
     @State private var selectedLot: ParkingLot?
     @State private var showingDetail = false
@@ -19,6 +20,29 @@ struct ParkingLotsListView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    // 0. 离线模式提示
+                    if parkingLotViewModel.isOfflineMode {
+                        HStack {
+                            Image(systemName: "wifi.slash")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("offline_mode"))
+                                    .font(.headline)
+                                if let cacheTime = parkingLotViewModel.lastCacheTime {
+                                    Text(NSLocalizedString("last_updated") + ": \(formatCacheTime(cacheTime))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        .padding(.top)
+                    }
+                    
                     // 1. 当前位置
                     if locationManager.currentLocation != nil {
                         HStack {
@@ -159,9 +183,24 @@ struct ParkingLotsListView: View {
             .onAppear {
                 parkingLotViewModel.loadLots()
                 locationManager.request()
+                // 检查离线状态
+                if !NetworkMonitor.shared.isConnected {
+                    parkingLotViewModel.isOfflineMode = true
+                    parkingLotViewModel.lastCacheTime = CoreDataService.shared.getCacheTimestamp()
+                }
             }
             .onChange(of: locationManager.currentLocation) { newLocation in
                 parkingLotViewModel.updateCurrentLocation(newLocation)
+            }
+            .onChange(of: networkMonitor.isConnected) { isConnected in
+                if !isConnected {
+                    parkingLotViewModel.isOfflineMode = true
+                    parkingLotViewModel.lastCacheTime = CoreDataService.shared.getCacheTimestamp()
+                } else {
+                    parkingLotViewModel.isOfflineMode = false
+                    // 网络恢复时重新加载数据
+                    parkingLotViewModel.loadLots()
+                }
             }
             .sheet(isPresented: $showingDetail) {
                 if let lot = selectedLot {
@@ -191,6 +230,15 @@ struct ParkingLotsListView: View {
             return parkingLotViewModel.filtered
         }
         return parkingLotViewModel.filtered.filter { $0.id != nearest.id }
+    }
+    
+    // 格式化缓存时间
+    private func formatCacheTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        formatter.locale = Locale.current
+        return formatter.string(from: date)
     }
     
 }

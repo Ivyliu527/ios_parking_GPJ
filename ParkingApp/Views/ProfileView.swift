@@ -157,6 +157,9 @@ struct EditProfileView: View {
         if let userData = try? JSONEncoder().encode(user) {
             UserDefaults.standard.set(userData, forKey: "currentUser")
         }
+        
+        // 如果有网络，同步到服务器（需要服务器支持更新用户信息的 API）
+        // 这里暂时只保存到本地，等服务器 API 准备好后再添加
     }
 }
 
