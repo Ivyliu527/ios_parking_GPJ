@@ -37,6 +37,7 @@ class ParkingLotViewModel: ObservableObject {
     
     @Published var filters: Filters = Filters()
     @Published var sortBy: ParkingLotSortBy = .distance
+    var favoriteParkingLotIds: [String] = [] // 收藏的停车场ID列表
     
     private let parkingLotService: ParkingLotService
     private let networkMonitor = NetworkMonitor.shared
@@ -45,9 +46,7 @@ class ParkingLotViewModel: ObservableObject {
     
     struct Filters {
         var hasEV: Bool = false
-        var covered: Bool = false
-        var cctv: Bool = false
-        var onlyAvailable: Bool = false
+        var onlyFavorites: Bool = false
     }
     
     init(parkingLotService: ParkingLotService = ParkingLotService.shared) {
@@ -127,16 +126,6 @@ class ParkingLotViewModel: ObservableObject {
             addressSuggestions = []
         }
         
-        // 筛选：仅显示有空位
-        if filters.onlyAvailable {
-            result = result.filter { lot in
-                if let hasAvailable = lot.hasAvailableSpaces {
-                    return hasAvailable
-                }
-                return false // nil 表示未知，不算有空位
-            }
-        }
-        
         // 筛选：EV 充电
         if filters.hasEV {
             result = result.filter { lot in
@@ -144,17 +133,10 @@ class ParkingLotViewModel: ObservableObject {
             }
         }
         
-        // 筛选：有盖
-        if filters.covered {
+        // 筛选：我的收藏
+        if filters.onlyFavorites {
             result = result.filter { lot in
-                lot.facilities?.covered == true
-            }
-        }
-        
-        // 筛选：CCTV
-        if filters.cctv {
-            result = result.filter { lot in
-                lot.facilities?.cctv == true
+                favoriteParkingLotIds.contains(lot.id)
             }
         }
         

@@ -4,6 +4,7 @@ import CoreLocation
 /// 停车场列表视图
 struct ParkingLotsListView: View {
     @EnvironmentObject var parkingLotViewModel: ParkingLotViewModel
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @StateObject private var locationManager = LocationManager()
     @State private var selectedLot: ParkingLot?
@@ -186,11 +187,28 @@ struct ParkingLotsListView: View {
     
     private var nearbySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(NSLocalizedString("nearby_parking"))
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                Spacer()
+            // 标题和筛选排序区域
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(NSLocalizedString("nearby_parking"))
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+                
+                // 筛选和排序视图
+                FilterAndSortView(currentLocation: locationManager.currentLocation)
+                    .environmentObject(parkingLotViewModel)
+                    .environmentObject(authViewModel)
+                    .onAppear {
+                        // 更新收藏列表
+                        parkingLotViewModel.favoriteParkingLotIds = authViewModel.getFavorites()
+                    }
+                    .onChange(of: authViewModel.currentUser?.favoriteParkingLotIds) { _ in
+                        // 当收藏列表变化时更新
+                        parkingLotViewModel.favoriteParkingLotIds = authViewModel.getFavorites()
+                        parkingLotViewModel.applyFiltersAndSort(currentLocation: locationManager.currentLocation)
+                    }
             }
             .padding(.horizontal)
             
@@ -565,85 +583,109 @@ struct ParkingLotRow: View {
     }
 }
 
-/// 筛选和排序视图（任务5）
+/// 筛选和排序视图
 struct FilterAndSortView: View {
     @EnvironmentObject var viewModel: ParkingLotViewModel
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
+    let currentLocation: CLLocation?
+    
     var body: some View {
-        VStack(spacing: 12) {
-            // 筛选开关
-            HStack(spacing: 16) {
-                Toggle(NSLocalizedString("only_available"), isOn: Binding(
-                    get: { viewModel.filters.onlyAvailable },
-                    set: { newValue in
-                        viewModel.filters.onlyAvailable = newValue
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
-                    }
-                ))
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 10) {
+            // 筛选选项 - 只显示 EV充电 和 我的收藏
+            HStack(spacing: 12) {
+                FilterToggle(
+                    title: NSLocalizedString("ev_charging_filter"),
+                    icon: "bolt.car.fill",
+                    isOn: Binding(
+                        get: { viewModel.filters.hasEV },
+                        set: { newValue in
+                            viewModel.filters.hasEV = newValue
+                            viewModel.applyFiltersAndSort(currentLocation: currentLocation)
+                        }
+                    )
+                )
                 
-                Toggle(NSLocalizedString("ev_charging_filter"), isOn: Binding(
-                    get: { viewModel.filters.hasEV },
-                    set: { newValue in
-                        viewModel.filters.hasEV = newValue
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
-                    }
-                ))
-                .font(.caption)
-                
-                Toggle(NSLocalizedString("covered_filter"), isOn: Binding(
-                    get: { viewModel.filters.covered },
-                    set: { newValue in
-                        viewModel.filters.covered = newValue
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
-                    }
-                ))
-                .font(.caption)
-                
-                Toggle("CCTV", isOn: Binding(
-                    get: { viewModel.filters.cctv },
-                    set: { newValue in
-                        viewModel.filters.cctv = newValue
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
-                    }
-                ))
-                .font(.caption)
+                if authViewModel.isAuthenticated {
+                    FilterToggle(
+                        title: NSLocalizedString("my_favorites"),
+                        icon: "heart.fill",
+                        isOn: Binding(
+                            get: { viewModel.filters.onlyFavorites },
+                            set: { newValue in
+                                // 更新收藏列表
+                                viewModel.favoriteParkingLotIds = authViewModel.getFavorites()
+                                viewModel.filters.onlyFavorites = newValue
+                                viewModel.applyFiltersAndSort(currentLocation: currentLocation)
+                            }
+                        )
+                    )
+                }
             }
             
-            // 排序菜单
-            HStack {
+            // 排序选项
+            HStack(spacing: 8) {
                 Text(NSLocalizedString("sort_by") + ":")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 Menu {
-                    Button(NSLocalizedString("sort_distance")) {
+                    Button(action: {
                         viewModel.sortBy = .distance
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
+                        viewModel.applyFiltersAndSort(currentLocation: currentLocation)
+                    }) {
+                        HStack {
+                            Text(NSLocalizedString("sort_distance"))
+                            if viewModel.sortBy == .distance {
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
                     
-                    Button(NSLocalizedString("sort_vacancies")) {
+                    Button(action: {
                         viewModel.sortBy = .vacancies
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
+                        viewModel.applyFiltersAndSort(currentLocation: currentLocation)
+                    }) {
+                        HStack {
+                            Text(NSLocalizedString("sort_vacancies"))
+                            if viewModel.sortBy == .vacancies {
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
                     
-                    Button(NSLocalizedString("sort_price")) {
+                    Button(action: {
                         viewModel.sortBy = .priceHint
-                        viewModel.applyFiltersAndSort(currentLocation: nil)
+                        viewModel.applyFiltersAndSort(currentLocation: currentLocation)
+                    }) {
+                        HStack {
+                            Text(NSLocalizedString("sort_price"))
+                            if viewModel.sortBy == .priceHint {
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
                 } label: {
-                    HStack {
+                    HStack(spacing: 4) {
                         Text(sortByText)
-                            .font(.caption)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
                         Image(systemName: "chevron.down")
                             .font(.caption2)
                     }
                     .foregroundColor(.blue)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
                 }
+                
+                Spacer()
             }
         }
-        .padding(.vertical, 8)
-        .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
     }
     
     private var sortByText: String {
@@ -652,5 +694,34 @@ struct FilterAndSortView: View {
         case .vacancies: return NSLocalizedString("sort_vacancies")
         case .priceHint: return NSLocalizedString("sort_price")
         }
+    }
+}
+
+/// 筛选开关组件
+struct FilterToggle: View {
+    let title: String
+    let icon: String
+    @Binding var isOn: Bool
+    
+    var body: some View {
+        Button(action: {
+            isOn.toggle()
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundColor(isOn ? .white : .blue)
+                
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(isOn ? .white : .primary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isOn ? Color.blue : Color(.systemGray5))
+            .cornerRadius(8)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }

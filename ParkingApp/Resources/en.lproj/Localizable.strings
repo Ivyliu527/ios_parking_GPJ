@@ -135,6 +135,7 @@
 "remove_from_favorites" = "Remove from Favorites";
 "favorites" = "Favorites";
 "favorite_parking_lots" = "Favorite Parking Lots";
+"my_favorites" = "My Favorites";
 "no_favorites" = "No favorites yet";
 "add_favorites_hint" = "Tap the favorite button on parking lot details to add parking lots to your favorites";
 "login_to_view_favorites" = "Please login to view your favorite parking lots";
