@@ -8,9 +8,12 @@
 import Foundation
 import Combine
 
+// MARK: - 停车场服务实现
+
 /// 停车场服务实现
 /// 数据源：data.gov.hk - 香港政府数据一站通
 /// 使用 Core Data 进行本地缓存
+/// 实现 ParkingLotProviding 协议，提供停车场数据获取功能
 class ParkingLotService: ParkingLotProviding, ObservableObject {
     static let shared = ParkingLotService()
     
@@ -18,16 +21,30 @@ class ParkingLotService: ParkingLotProviding, ObservableObject {
     private let coreDataService = CoreDataService.shared
     private let cacheExpirationInterval: TimeInterval = 24 * 60 * 60 // 24小时
     
+    // MARK: - 发布属性
+    
+    /// 最后缓存时间
     @Published var lastCacheTime: Date?
+    
+    /// 是否处于离线模式
     @Published var isOfflineMode: Bool = false
     
+    // MARK: - 初始化方法
+    
+    /// 私有初始化方法
+    /// 实现单例模式，初始化时加载缓存时间
     private init() {
         // 初始化时加载缓存时间
         lastCacheTime = coreDataService.getCacheTimestamp()
     }
     
+    // MARK: - 停车场数据获取
+    
     /// 获取停车场列表
     /// 优先使用缓存，过期则从网络获取
+    /// 支持离线模式，网络不可用时返回缓存数据
+    /// - Returns: 停车场数组
+    /// - Throws: 网络错误或其他获取数据时的错误
     func fetchLots() async throws -> [ParkingLot] {
         // 检查网络连接
         let isConnected = networkMonitor.isConnected
@@ -64,8 +81,13 @@ class ParkingLotService: ParkingLotProviding, ObservableObject {
         return lots
     }
     
+    // MARK: - 网络数据获取
+    
     /// 从网络获取停车场数据
+    /// 从香港政府 data.gov.hk API 获取停车场信息
     /// API: https://api.data.gov.hk/v1/carpark-info-vacancy
+    /// - Returns: 停车场数组
+    /// - Throws: 网络错误或数据解析错误
     private func fetchLotsFromNetwork() async throws -> [ParkingLot] {
         // 获取当前语言设置
         let lang = LanguageManager.shared.currentLanguage.apiLang
@@ -193,12 +215,20 @@ class ParkingLotService: ParkingLotProviding, ObservableObject {
         return parkingLots
     }
     
+    // MARK: - 缓存管理
+    
     /// 获取缓存时间戳（用于显示）
+    /// 返回最后一次缓存数据的时间，用于在 UI 中显示数据更新时间
+    /// - Returns: 缓存时间戳，如果无缓存则返回 nil
     func getCacheTimestamp() -> Date? {
         return coreDataService.getCacheTimestamp()
     }
     
+    // MARK: - 模拟数据
+    
     /// 模拟停车场数据（用于开发和测试）
+    /// 当 API 返回空数据时，使用模拟数据作为后备
+    /// - Returns: 模拟停车场数组
     private func mockParkingLots() -> [ParkingLot] {
         return [
             ParkingLot(

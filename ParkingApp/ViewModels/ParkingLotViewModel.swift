@@ -10,21 +10,31 @@ import SwiftUI
 import Combine
 import CoreLocation
 
+// MARK: - 停车场排序方式
+
 /// 停车场排序方式
+/// 定义停车场的排序选项
 enum ParkingLotSortBy {
     case distance
     case vacancies
     case priceHint
 }
 
+// MARK: - 地址候选项模型
+
 /// 地址候选项
+/// 用于搜索时的地址建议
 struct AddressSuggestion: Identifiable, Hashable {
     let id = UUID()
     let address: String
     let location: CLLocation
 }
 
+// MARK: - 停车场视图模型
+
 /// 停车场视图模型
+/// 管理停车场列表的加载、筛选、排序和搜索功能
+/// 支持离线模式和地理位置搜索
 class ParkingLotViewModel: ObservableObject {
     @Published var lots: [ParkingLot] = []
     @Published var filtered: [ParkingLot] = []
@@ -44,11 +54,19 @@ class ParkingLotViewModel: ObservableObject {
     private var currentLocation: CLLocation?
     private let geocoder = CLGeocoder()
     
+    // MARK: - 筛选器结构
+    
+    /// 筛选器结构
+    /// 定义停车场列表的筛选选项
     struct Filters {
         var hasEV: Bool = false
         var onlyFavorites: Bool = false
     }
     
+    // MARK: - 初始化方法
+    
+    /// 初始化方法
+    /// - Parameter parkingLotService: 停车场服务实例
     init(parkingLotService: ParkingLotService = ParkingLotService.shared) {
         self.parkingLotService = parkingLotService
         // 初始化时检查离线状态
@@ -56,7 +74,10 @@ class ParkingLotViewModel: ObservableObject {
         self.lastCacheTime = parkingLotService.getCacheTimestamp()
     }
     
+    // MARK: - 数据加载
+    
     /// 加载停车场列表
+    /// 从服务层获取停车场数据，支持离线模式
     func loadLots() {
         isLoading = true
         
@@ -88,13 +109,21 @@ class ParkingLotViewModel: ObservableObject {
         }
     }
     
+    // MARK: - 位置管理
+    
     /// 更新当前位置
+    /// 更新用户当前位置，用于距离计算和排序
+    /// - Parameter location: 当前位置
     func updateCurrentLocation(_ location: CLLocation?) {
         currentLocation = location
         applyFiltersAndSort(currentLocation: location)
     }
     
+    // MARK: - 筛选和排序
+    
     /// 应用筛选和排序
+    /// 根据搜索文本、筛选条件和排序方式处理停车场列表
+    /// - Parameter currentLocation: 当前位置，用于距离排序
     func applyFiltersAndSort(currentLocation: CLLocation?) {
         var result = lots
         var referenceLocation = currentLocation // 用于距离排序的参考位置
@@ -163,7 +192,10 @@ class ParkingLotViewModel: ObservableObject {
         filtered = result
     }
     
+    // MARK: - 搜索功能
+    
     /// 监听搜索文本变化
+    /// 当搜索文本改变时，进行名称匹配或地理编码
     func onSearchTextChanged() {
         let searchQuery = searchText.trimmingCharacters(in: .whitespaces)
         
@@ -192,6 +224,8 @@ class ParkingLotViewModel: ObservableObject {
     }
     
     /// 地理编码搜索查询
+    /// 将搜索文本转换为地理位置，用于距离排序
+    /// - Parameter query: 搜索文本
     private func geocodeSearchQuery(_ query: String) {
         geocoder.cancelGeocode()
         geocoder.geocodeAddressString(query) { [weak self] placemarks, error in
@@ -247,6 +281,8 @@ class ParkingLotViewModel: ObservableObject {
     }
     
     /// 选择地址候选
+    /// 用户选择地址建议后，更新搜索文本和参考位置
+    /// - Parameter suggestion: 选中的地址建议
     func selectAddressSuggestion(_ suggestion: AddressSuggestion) {
         searchText = suggestion.address
         searchReferenceLocation = suggestion.location

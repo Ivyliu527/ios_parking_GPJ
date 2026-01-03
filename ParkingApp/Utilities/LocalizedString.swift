@@ -7,7 +7,14 @@
 
 import Foundation
 
-/// 本地化字符串辅助函数（支持实时语言切换）
+// MARK: - 本地化字符串辅助函数
+
+/// 本地化字符串辅助函数
+/// 支持实时语言切换的本地化字符串获取函数
+/// - Parameters:
+///   - key: 本地化键
+///   - comment: 注释（可选）
+/// - Returns: 本地化后的字符串
 func NSLocalizedString(_ key: String, comment: String = "") -> String {
     let languageManager = LanguageManager.shared
     let language = languageManager.currentLanguage

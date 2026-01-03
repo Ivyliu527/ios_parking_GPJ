@@ -7,6 +7,10 @@
 
 import Foundation
 
+// MARK: - 用户数据模型
+
+/// 用户模型
+/// 表示应用用户的基本信息和收藏列表
 struct User: Codable, Identifiable {
     let id: String
     var email: String
@@ -29,7 +33,11 @@ struct User: Codable, Identifiable {
         self.favoriteParkingLotIds = favoriteParkingLotIds
     }
     
-    // 方便方法：切換收藏狀態
+    // MARK: - 收藏功能方法
+    
+    /// 切换收藏状态
+    /// 如果已收藏则取消收藏，如果未收藏则添加收藏
+    /// - Parameter parkingLotId: 停车场ID
     mutating func toggleFavorite(parkingLotId: String) {
         if favoriteParkingLotIds.contains(parkingLotId) {
             favoriteParkingLotIds.removeAll { $0 == parkingLotId }
@@ -38,7 +46,10 @@ struct User: Codable, Identifiable {
         }
     }
     
-    // 方便方法：檢查是否收藏
+    /// 检查是否收藏
+    /// 判断指定的停车场是否在收藏列表中
+    /// - Parameter parkingLotId: 停车场ID
+    /// - Returns: 如果已收藏返回 true，否则返回 false
     func isFavorite(parkingLotId: String) -> Bool {
         return favoriteParkingLotIds.contains(parkingLotId)
     }

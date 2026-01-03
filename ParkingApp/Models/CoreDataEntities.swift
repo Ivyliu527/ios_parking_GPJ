@@ -9,8 +9,14 @@ import CoreData
 
 // MARK: - Core Data 实体扩展
 
+// MARK: - ParkingLotEntity 扩展
+
 extension ParkingLotEntity {
+    // MARK: - 数据转换方法
+    
     /// 转换为领域模型 ParkingLot
+    /// 将 Core Data 实体转换为应用使用的 ParkingLot 模型
+    /// - Returns: ParkingLot 模型实例
     func toParkingLot() -> ParkingLot {
         // 注意：evChargerCount 在数据模型中通常为非可选 Int32
         // 不能使用 if let 对其做可选绑定，否则会报
@@ -53,6 +59,11 @@ extension ParkingLotEntity {
     }
     
     /// 从领域模型 ParkingLot 创建或更新实体
+    /// 如果实体已存在则更新，否则创建新实体
+    /// - Parameters:
+    ///   - lot: ParkingLot 模型实例
+    ///   - context: Core Data 上下文
+    /// - Returns: ParkingLotEntity 实例
     @discardableResult
     static func createOrUpdate(from lot: ParkingLot, in context: NSManagedObjectContext) -> ParkingLotEntity {
         let request: NSFetchRequest<ParkingLotEntity> = ParkingLotEntity.fetchRequest()
@@ -95,8 +106,18 @@ extension ParkingLotEntity {
     }
 }
 
+// MARK: - FavoriteEntity 扩展
+
 extension FavoriteEntity {
-    /// 切换收藏状态；存在则删除，不存在则新增。返回当前是否为"已收藏"
+    // MARK: - 收藏功能方法
+    
+    /// 切换收藏状态
+    /// 如果已收藏则删除，如果未收藏则新增。返回当前是否为"已收藏"
+    /// - Parameters:
+    ///   - userId: 用户ID
+    ///   - parkingLotId: 停车场ID
+    ///   - context: Core Data 上下文
+    /// - Returns: 切换后的收藏状态，true 表示已收藏，false 表示未收藏
     @discardableResult
     static func toggleFavorite(userId: String, parkingLotId: String, in context: NSManagedObjectContext) -> Bool {
         // 使用类型安全的 fetchRequest() 方法
@@ -123,6 +144,12 @@ extension FavoriteEntity {
     }
     
     /// 检查是否已收藏
+    /// 查询指定用户是否收藏了指定的停车场
+    /// - Parameters:
+    ///   - userId: 用户ID
+    ///   - parkingLotId: 停车场ID
+    ///   - context: Core Data 上下文
+    /// - Returns: 如果已收藏返回 true，否则返回 false
     static func isFavorite(userId: String, parkingLotId: String, in context: NSManagedObjectContext) -> Bool {
         let request = FavoriteEntity.fetchRequest()
         request.fetchLimit = 1
@@ -136,7 +163,12 @@ extension FavoriteEntity {
         }
     }
     
-    /// 获取用户的所有收藏（返回 parkingLotId 列表）
+    /// 获取用户的所有收藏
+    /// 查询指定用户收藏的所有停车场ID列表
+    /// - Parameters:
+    ///   - userId: 用户ID
+    ///   - context: Core Data 上下文
+    /// - Returns: 停车场ID数组
     static func getFavorites(userId: String, in context: NSManagedObjectContext) -> [String] {
         let request = FavoriteEntity.fetchRequest()
         request.predicate = NSPredicate(format: "userId == %@", userId)

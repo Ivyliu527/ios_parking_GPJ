@@ -11,6 +11,11 @@ import Combine
 import FirebaseAuth
 import FirebaseFirestore
 
+// MARK: - 用户认证视图模型
+
+/// 用户认证视图模型
+/// 管理用户登录、注册、登出和用户资料更新功能
+/// 处理 Firebase Authentication 和 Firestore 数据同步
 class AuthenticationViewModel: ObservableObject {
     @Published var isAuthenticated = false
     @Published var currentUser: User?
@@ -22,6 +27,10 @@ class AuthenticationViewModel: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private let userKey = "currentUser"
     
+    // MARK: - 初始化方法
+    
+    /// 初始化方法
+    /// 监听 Firebase Auth 状态变化，启动时检查当前认证状态
     init() {
         // 监听 Firebase Auth 状态变化
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -38,6 +47,10 @@ class AuthenticationViewModel: ObservableObject {
         checkAuthentication()
     }
     
+    // MARK: - 认证状态检查
+    
+    /// 检查认证状态
+    /// 检查当前用户是否已登录，如果已登录则加载用户数据
     func checkAuthentication() {
         if let firebaseUser = Auth.auth().currentUser {
             Task {
@@ -53,7 +66,11 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
-    // 从 Firestore 加载用户数据
+    // MARK: - 用户数据加载
+    
+    /// 从 Firestore 加载用户数据
+    /// 从 Firestore 读取用户的完整信息，包括收藏列表
+    /// - Parameter firebaseUser: Firebase 用户对象
     private func loadUserData(firebaseUser: FirebaseAuth.User) async {
         do {
             let doc = try await db.collection("users").document(firebaseUser.uid).getDocument()
@@ -118,6 +135,13 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
+    // MARK: - 用户登录
+    
+    /// 用户登录
+    /// 使用邮箱和密码登录，处理各种登录错误
+    /// - Parameters:
+    ///   - email: 用户邮箱
+    ///   - password: 用户密码
     func login(email: String, password: String) {
         isLoading = true
         errorMessage = nil
@@ -171,6 +195,15 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
+    // MARK: - 用户注册
+    
+    /// 用户注册
+    /// 创建新用户账号，在 Firestore 中初始化用户文档
+    /// - Parameters:
+    ///   - email: 用户邮箱
+    ///   - password: 用户密码
+    ///   - name: 用户姓名
+    ///   - phoneNumber: 用户电话
     func register(email: String, password: String, name: String, phoneNumber: String) {
         isLoading = true
         errorMessage = nil
@@ -236,6 +269,10 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
+    // MARK: - 用户登出
+    
+    /// 用户登出
+    /// 退出当前登录的用户，清除本地缓存
     func logout() {
         do {
             try Auth.auth().signOut()
@@ -247,8 +284,11 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
-    // MARK: - 收藏（Core Data 同步）
+    // MARK: - 收藏功能
     
+    /// 切换收藏状态
+    /// 切换指定停车场的收藏状态，同步到 Core Data 和 Firestore
+    /// - Parameter parkingLotId: 停车场ID
     func toggleFavorite(parkingLotId: String) {
         // 保护：只有在用户已登录时才操作收藏
         guard isAuthenticated, let userId = currentUser?.id else {
@@ -284,6 +324,10 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
+    /// 检查是否已收藏
+    /// 判断指定的停车场是否在用户的收藏列表中
+    /// - Parameter parkingLotId: 停车场ID
+    /// - Returns: 如果已收藏返回 true，否则返回 false
     func isFavorite(parkingLotId: String) -> Bool {
         // 保护：只有在用户已登录时才检查收藏
         guard isAuthenticated, let userId = currentUser?.id else {
@@ -298,6 +342,9 @@ class AuthenticationViewModel: ObservableObject {
         return CoreDataService.shared.isFavorite(userId: userId, parkingLotId: parkingLotId)
     }
     
+    /// 获取收藏列表
+    /// 获取用户收藏的所有停车场ID列表
+    /// - Returns: 停车场ID数组
     func getFavorites() -> [String] {
         // 保护：只有在用户已登录时才获取收藏
         guard isAuthenticated, let userId = currentUser?.id else {
@@ -312,6 +359,8 @@ class AuthenticationViewModel: ObservableObject {
         return CoreDataService.shared.getFavorites(userId: userId)
     }
     
+    /// 同步收藏到 Core Data
+    /// 将 Firestore 中的收藏列表同步到本地 Core Data
     private func syncFavoritesToCoreData() {
         // 保护：只有在用户已登录且 Core Data 就绪时才同步
         guard isAuthenticated,
@@ -332,7 +381,15 @@ class AuthenticationViewModel: ObservableObject {
         // }
     }
     
-    // 更新用户资料
+    // MARK: - 用户资料管理
+    
+    /// 更新用户资料
+    /// 更新用户的姓名、电话和车牌号信息，同步到 Firestore
+    /// - Parameters:
+    ///   - name: 用户姓名
+    ///   - phoneNumber: 用户电话
+    ///   - licensePlate: 车牌号（可选）
+    /// - Throws: 更新过程中的错误
     func updateUserProfile(name: String, phoneNumber: String, licensePlate: String?) async throws {
         guard let userId = currentUser?.id,
               Auth.auth().currentUser != nil else {
@@ -362,8 +419,11 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Private
+    // MARK: - 私有方法
     
+    /// 保存用户到本地缓存
+    /// 将用户信息保存到 UserDefaults，用于离线访问
+    /// - Parameter user: 用户对象
     private func saveUser(_ user: User) {
         if let userData = try? JSONEncoder().encode(user) {
             userDefaults.set(userData, forKey: userKey)
